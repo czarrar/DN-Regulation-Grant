@@ -361,22 +361,23 @@ tdf <- wrap_lmrob(prediction ~ nchanges, df)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.1468 -0.0897  0.0162  0.0691  0.1837 
+##      Min       1Q   Median       3Q      Max 
+## -0.17004 -0.08214  0.00355  0.06538  0.15657 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   0.4604     0.1527    3.02    0.013 *
-## nchanges     -0.0128     0.0101   -1.27    0.234  
+## (Intercept)   0.5224     0.1723    3.03    0.013 *
+## nchanges     -0.0167     0.0109   -1.52    0.159  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.109 
+## Robust residual standard error: 0.1 
 ## Convergence in 14 IRWLS iterations
 ## 
 ## Robustness weights: 
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.757   0.890   0.936   0.922   0.981   0.998 
+##  3 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     6     7     8     9    11 
+## 0.791 0.894 0.935 0.872 0.969 0.953 0.896 0.981 0.756 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -557,9 +558,9 @@ adonis(d ~ Age + Sex + prediction, df, permutations = 4999)
 ## Terms added sequentially (first to last)
 ## 
 ##            Df SumsOfSqs MeanSqs F.Model    R2 Pr(>F)    
-## Age         1     0.386   0.386    3.45 0.136  4e-02 *  
-## Sex         1     0.922   0.922    8.24 0.325  6e-04 ***
-## prediction  1     0.634   0.634    5.66 0.223  6e-03 ** 
+## Age         1     0.386   0.386    3.45 0.136 0.0394 *  
+## Sex         1     0.922   0.922    8.24 0.325 0.0002 ***
+## prediction  1     0.634   0.634    5.66 0.223 0.0042 ** 
 ## Residuals   8     0.895   0.112         0.316           
 ## Total      11     2.837                 1.000           
 ## ---
@@ -580,8 +581,8 @@ adonis(d ~ Age + Sex + prediction, df, permutations = 4999)
 ## Terms added sequentially (first to last)
 ## 
 ##            Df SumsOfSqs MeanSqs F.Model    R2 Pr(>F)
-## Age         1      0.48   0.480   1.073 0.103   0.38
-## Sex         1      0.40   0.404   0.903 0.086   0.47
+## Age         1      0.48   0.480   1.073 0.103   0.36
+## Sex         1      0.40   0.404   0.903 0.086   0.48
 ## prediction  1      0.22   0.221   0.493 0.047   0.57
 ## Residuals   8      3.58   0.447         0.764       
 ## Total      11      4.68                 1.000
@@ -676,7 +677,7 @@ brainbehavior.single <- function(names) {
 ```
 
 
-#### Total Scale Scores (with BDI)
+#### Total Scale Scores (with BDI, without PANAS)
 
 ##### Multiple Regression
 
@@ -686,6 +687,10 @@ Here, only RRS is significant and there are no outliers.
 ```r
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
 brainbehavior.multiple(names)
+```
+
+```
+## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
 ```
 
 ```
@@ -927,15 +932,19 @@ brainbehavior.single(names)
 ![plot of chunk single-totals-prediction](figure/single-totals-prediction.png) 
 
 
-#### Total Scale Scores (without BDI)
+#### Total Scale Scores (with PANAS, without BDI)
 
 ##### Multiple Regression
 
+RRS is significant and ERQ is marginally significant.
+
+**BELOW IS RELEVANT FOR A MODEL WITHOUT PANAS**
 Not sure why BDI had such a huge effect since now every measure except ERQ is significant. However, oddly subjects 3 and 5 are outliers even though they seem to fit the data fairly well. Note there is a disconnect with the way I run the regression to get significance and the way I get build the best fit lines...I can explain this more in person or on the phone.
+**ABOVE IS RELEVANT FOR A MODEL WITHOUT PANAS**
 
 
 ```r
-names <- c("SIPI", "RRS", "ERQ", "AIM")
+names <- c("SIPI", "RRS", "ERQ", "AIM", "PANAS_Positive", "PANAS_Negative")
 brainbehavior.multiple(names)
 ```
 
@@ -945,29 +954,30 @@ brainbehavior.multiple(names)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##  [1]  0.00339  0.00213 -0.46828 -0.00807  0.78012  0.01126  0.00709
-##  [8]  0.02525 -0.00142 -0.00566 -0.02462 -0.00930
+##  [1]  0.05622 -0.01664 -0.06432 -0.08005 -0.00453  0.00756  0.01611
+##  [8]  0.02955  0.00111  0.04634 -0.07332  0.08034
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) -0.065005   0.051960   -1.25     0.27    
-## Age         -0.019603   0.000743  -26.38  1.5e-06 ***
-## SexMale      0.339719   0.019413   17.50  1.1e-05 ***
-## SIPI        -0.016380   0.000855  -19.15  7.2e-06 ***
-## RRS          0.012866   0.000415   31.01  6.5e-07 ***
-## ERQ         -0.000266   0.000899   -0.30     0.78    
-## AIM          0.016052   0.000873   18.38  8.8e-06 ***
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)    -0.01424    0.49425   -0.03   0.9788   
+## Age            -0.00710    0.00570   -1.25   0.3012   
+## SexMale        -0.11188    0.07740   -1.45   0.2441   
+## SIPI            0.00393    0.00315    1.25   0.3008   
+## RRS             0.01283    0.00201    6.40   0.0077 **
+## ERQ            -0.00615    0.00210   -2.92   0.0614 . 
+## AIM            -0.00199    0.00192   -1.04   0.3757   
+## PANAS_Positive  0.00343    0.00550    0.62   0.5769   
+## PANAS_Negative -0.01089    0.00658   -1.66   0.1964   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.062 
-## Convergence in 4 IRWLS iterations
+## Robust residual standard error: 0.139 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  2 observations c(3,5) are outliers with |weight| = 0 ( < 0.0083); 
-##  4 weights are ~= 1. The remaining 6 ones are
-##     4     6     7     8    11    12 
-## 0.998 0.997 0.999 0.985 0.986 0.998 
+##  3 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     7     8    10    11    12 
+## 0.985 0.999 0.981 0.970 0.999 0.996 0.990 0.975 0.970 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
