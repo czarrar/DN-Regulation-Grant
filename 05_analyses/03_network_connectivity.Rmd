@@ -1,0 +1,70 @@
+# Network Connectivity
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('03_network_connectivity.R')
+```
+
+
+## Setup
+
+```{r general-setup, messages='hide', results='hide'}
+```
+
+```{r network-setup}
+```
+
+### Read in Data
+
+```{r phenotypes}
+```
+
+```{r timeseries}
+```
+
+Note since analyses will focus on the default-mode network and the task positive networks, time-series will be restricted to only those networks.
+
+
+## Connectivity
+
+For each subject, calculate the correlation between the DMN time-series and each of 3 TP time-series.
+
+```{r connectivity}
+```
+
+### Distribution
+
+```{r connectivity-distribution}
+```
+
+
+## Brain-Behavior
+
+Generally the approach below is to examine the relationship between each phenotypic measure and DMN/TP network connectivity via scatter plots and a table of Z-Scores assessing the significance of the relationships.
+
+### Needed Functions
+
+```{r brain-behavior-functions}
+```
+
+### For Each Total Score
+
+```{r brain-behavior-totals, fig.width=8, fig.height=4, results='asis'}
+```
+
+### For SIPI SubScale
+
+```{r brain-behavior-sipi}
+```
+
+### For RRS SubScale
+
+```{r brain-behavior-rrs}
+```
+
+### For PANAS SubScale
+
+```{r brain-behavior-panas}
+```
+

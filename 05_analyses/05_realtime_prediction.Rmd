@@ -1,0 +1,141 @@
+# Associations with Real-Time Prediction Accuracy
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('05_realtime_prediction.R')
+```
+
+## Overview
+
+There were several interesting results that emerged from these analyses:
+
+* Scores on the RRS Brooding sub-scale are highly and significantly related to real-time prediction accuracy.
+* Connectivity between the DMN and TP networks are marginally related to real-time prediction accuracy.
+* The number of change points in an individual's DMN time-series is significantly related to real-time prediction accuracy. More on change points below.
+
+## Setup
+
+```{r general-setup, message=FALSE, results='hide'}
+```
+
+```{r network-setup}
+```
+
+```{r phenotypes}
+```
+
+## Brain Measures
+
+### Network Connectivity
+
+```{r connectivity}
+```
+
+This is the group average connectivity with the DMN.
+
+### Kurtosis
+
+```{r kurtosis}
+```
+
+### Autocorrelation
+
+As another measure of stability of the DMN time-series, I looked at it's autocorrelation. I wasn't totally sure how to summarize it, so I calculated the number of lags it took for an individuals DMN time-series to have a correlation of zero.
+
+```{r autocorrelation}
+```
+
+### Change Points
+
+As another measure of the stability of the DMN time-series and to capture changes in brain state that might occur during rest, I used bayesian change point analysis. Essentially, it looks in a time-series for points in time when there is a significant change signal. Another motivation for using this was based on the finding that real-time prediction accuracy was significantly related to an individual's RRS Brooding subscale. I made the reverse inference that since 'brooding' engages the DMN, one might expect that at rest those individuals with higher RRS Brooding scores to have less state changes in the DMN. There are probably a dozen ways to summarize the results from the change point analysis, I determined a change point to be a time with a posterior probability greater than 0.5 and simply calculated the number of such 'change points' in each individual's time-series. Incidently, though the change point summary measure I use is significantly related to prediction accuracy, it isn't significantly related to RRS Brooding (but it's close p=0.2). 
+
+```{r changepoints, fig.width=8, fig.height=4}
+```
+
+### Prediction
+
+```{r prediction}
+```
+
+Quick plot showing that the with feedback condition seems to have slightly greater real-time prediction accuracy than the no feedback condition. For all later analyses, I will ignore the feedback condition.
+
+```{r prediction-difference}
+```
+
+```{r combine}
+```
+
+## Prediction Accuracy Associations
+
+### with Brain Measures
+
+#### Kurtosis
+
+Nope not significant.
+
+```{r kurtosis-prediction}
+```
+
+#### Autocorrelation
+
+Not signficant, but it probably doesn't help that a bunch of individuals have the same number of lags. Again here I took the number of lags until the autocorrelation of the DMN time-series was 0 or below 0.
+
+```{r lag-prediction}
+```
+
+#### Change Points
+
+I win. As before, it probably isn't helpful that a bunch of individuals have the same number of change points. Again here I calculated the number of points in the DMN time-series that a significant change in the signal occured.
+
+```{r nchanges-prediction}
+```
+
+### TP Connectivity
+
+DMN connectivity with the left fronto-parietal is significant with the others coming close (there does appear to be an outlier with the right frontoporietal network).
+
+```{r connectivity-prediction}
+```
+
+### MDMR
+
+Had to throw this in. The first analysis is significant, so the pattern of connectivity between the DMN and the other networks significantly predicts real-time prediction accuracy.
+
+```{r cwas-prediction}
+```
+
+### with Phenotypic Measures
+
+```{r functions-prediction}
+```
+
+#### Total Scale Scores
+
+The RRS is significant with the ERQ and BDI being marginally significant.
+
+```{r totals-prediction, fig.width=12, fig.height=4}
+```
+
+### RRS SubScales
+
+The plot looks weird in that the subscales look so similar to each other. Since only the RRS Brooding is significant in the multiple regression, I am guessing only it has unique variance associated with real-time prediction accuracy.
+
+```{r rrs-prediction, fig.width=10, fig.height=4}
+```
+
+#### SIPI SubScales
+
+```{r sipi-prediction, fig.width=8, fig.height=4}
+```
+
+#### ERQ SubScales
+
+```{r erq-prediction, fig.width=8, fig.height=4}
+```
+
+#### PANAS SubScales
+
+```{r panas-prediction, fig.width=8, fig.height=4}
+```
+

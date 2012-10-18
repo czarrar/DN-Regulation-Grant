@@ -1,0 +1,92 @@
+
+
+```{r setup}
+library(plyr)
+library(e1071)
+library(ggplot2)
+
+basedir <- "/home2/data/Projects/CCD"
+opts_chunk$set(fig.width=5, fig.height=5)
+```
+
+# DMN-Kurtosis vs MSIT-DMN
+
+## Setup
+
+### Read in phenotypic data
+
+```{r read-phenotypic-data}
+fname <- file.path(basedir, "behavior/ccd_totals_touse.csv")
+phenos <- read.csv(fname, row.names=1)[1:9,]
+````
+
+Phenotypic information includes:
+* Age
+* Sex
+* EHI
+* SIPI_PAC, SIPI_GFFD, SIPI_PCD, SIPI
+* RRS_Brooding, RRS_Reflection, RRS_Depression, RRS
+* ERQ_Reappraisal, ERQ_Suppression, ERQ
+* BDI
+* PANAS_Positive, PANAS_Negative, PANAS
+
+Note that only 9 subjects will be used since that is the number of subjects with MSIT data.
+
+### Read in task waver
+
+Obtained this file from Cameron.
+
+```{r read-task-waver}
+waver <- read.table(file.path(basedir, "rois/waver_msit_design.1D"))
+waver <- as.vector(as.matrix(waver))
+```
+
+### Read in RSNs
+
+```{r read-rsns}
+# Rest
+fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D")))
+rest_tcs <- llply(fnames[1:9], read.table, .progress="text")
+# MSIT Run 1
+fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/msit/run_01/rsn10.1D")))
+msit_run1_tcs <- llply(fnames, read.table, .progress="text")
+# MSIT Run 2
+fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/msit/run_02/rsn10.1D")))
+msit_run2_tcs <- llply(fnames, read.table, .progress="text")
+```
+
+## Calculate Parameters
+
+### Correlate task design with RSN timecourses
+
+Run this for each run seperately and then combine across runs.
+
+```{r corr}
+msit_run1_cors <- laply(msit_run1_tcs, cor, waver, .progress="text")
+msit_run2_cors <- laply(msit_run2_tcs, cor, waver, .progress="text")
+msit_cors <- (msit_run1_cors + msit_run2_cors)/2
+```
+
+### Calculate kurtosis for each RSN
+
+```{r kurtosis}
+# Rest
+rest_kurtosis <- laply(rest_tcs, apply, 2, kurtosis, .progress="text")
+# MSIT
+msit_run1_kurtosis <- laply(msit_run1_tcs, apply, 2, kurtosis, .progress="text")
+msit_run2_kurtosis <- laply(msit_run2_tcs, apply, 2, kurtosis, .progress="text")
+msit_kurtosis <- (msit_run1_kurtosis + msit_run2_kurtosis)/2
+```
+
+## Plot
+
+```{r}
+df <- data.frame(
+    id = rep(phenos$study_id, 2), 
+    scan = factor(rep(c("rest", "msit"), each=9)), 
+    kurtosis = c(rest_kurtosis[,4], msit_kurtosis[,4]), 
+    msit_cors = rep(msit_cors[,4], 2)
+)
+
+ggplot(df, aes(x=kurtosis, y=msit_cors)) + geom_point() + geom_smooth(method="lm") + facet_grid(. ~ scan)
+```
