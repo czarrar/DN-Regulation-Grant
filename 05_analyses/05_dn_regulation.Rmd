@@ -1,16 +1,16 @@
-# Associations with Real-Time Prediction Accuracy
+# Associations with DN Regulation
 
 Note that actual code is loaded from a different file.
 
 ```{r external-code, cache=FALSE}
-read_chunk('05_realtime_prediction.R')
+read_chunk('05_dn_regulation.R')
 ```
 
 ## Overview
 
 There were several interesting results that emerged from these analyses:
 
-* Scores on the RRS Brooding sub-scale are highly and significantly related to real-time prediction accuracy.
+* Scores on the RRS Brooding sub-scale are highly and significantly related to DN regulation.
 * Connectivity between the DMN and TP networks are marginally related to real-time prediction accuracy.
 * The number of change points in an individual's DMN time-series is significantly related to real-time prediction accuracy. More on change points below.
 
@@ -79,14 +79,14 @@ Nope not significant.
 
 #### Autocorrelation
 
-Not signficant, but it probably doesn't help that a bunch of individuals have the same number of lags. Again here I took the number of lags until the autocorrelation of the DMN time-series was 0 or below 0.
+Significant. Again here I took the number of lags until the autocorrelation of the DMN time-series was 0 or below 0. Thus, someone who is good at regulating their DMN activity also is less likely to see slower changes in their DMN time-series (or at least I think that's what it means).
 
 ```{r lag-prediction}
 ```
 
 #### Change Points
 
-I win. As before, it probably isn't helpful that a bunch of individuals have the same number of change points. Again here I calculated the number of points in the DMN time-series that a significant change in the signal occured.
+Strange that this is no longer significant since the plot looks pretty good. As before, it probably isn't helpful that a bunch of individuals have the same number of change points. Again here I calculated the number of points in the DMN time-series that a significant change in the signal occured.
 
 ```{r nchanges-prediction}
 ```
@@ -110,39 +110,96 @@ Had to throw this in. The first analysis is significant, so the pattern of conne
 ```{r functions-prediction}
 ```
 
-#### Total Scale Scores
+#### Total Scale Scores (with BDI)
 
-##### With BDI
+##### Multiple Regression
 
-The RRS is significant with the ERQ and BDI being marginally significant.
+Here, only RRS is significant and there are no outliers.
 
-```{r totals-prediction, fig.width=12, fig.height=4}
+```{r multiple-totals-prediction, fig.width=12, fig.height=4}
 ```
 
-##### Without BDI
+##### Single Regressions
 
-```{r totals-prediction-no-bdi, fig.width=12, fig.height=4}
+Here, SIPI and RRS are both significant and subject 1 is an outlier in the AIM and SIPI analyses.
+
+```{r single-totals-prediction, fig.width=12, fig.height=4}
 ```
 
-### RRS SubScales
+#### Total Scale Scores (without BDI)
 
-The plot looks weird in that the subscales look so similar to each other. Since only the RRS Brooding is significant in the multiple regression, I am guessing only it has unique variance associated with real-time prediction accuracy.
+##### Multiple Regression
 
-```{r rrs-prediction, fig.width=10, fig.height=4}
+Not sure why BDI had such a huge effect since now every measure except ERQ is significant. However, oddly subjects 3 and 5 are outliers even though they seem to fit the data fairly well. Note there is a disconnect with the way I run the regression to get significance and the way I get build the best fit lines...I can explain this more in person or on the phone.
+
+```{r multiple-totals-prediction-no-bdi, fig.width=12, fig.height=4}
+```
+
+##### Single Regressions
+
+Of course there is no point in re-running this here.
+
+#### RRS SubScales
+
+##### Multiple Regression
+
+Only the RRS Brooding is significant here. I am not sure why subject 5 is chosen as an outlier here. 
+
+```{r multiple-rrs-prediction, fig.width=10, fig.height=4}
+```
+
+##### Single Regressions
+
+I am not sure why it crashes with RRS_Reflection. It doesn't converge in the RRS Reflection case but from what I can tell there is nothing weird about this data.
+
+```{r single-rrs-prediction, fig.width=10, fig.height=4}
 ```
 
 #### SIPI SubScales
 
-```{r sipi-prediction, fig.width=8, fig.height=4}
+##### Multiple Regression
+
+The Guilt and Fear of Failure of Day Dreaming questionnaire is marginally significant.
+
+```{r multiple-sipi-prediction, fig.width=8, fig.height=4}
+```
+
+##### Single Regressions
+
+None of them are significant!
+
+```{r single-sipi-prediction, fig.width=8, fig.height=4}
 ```
 
 #### ERQ SubScales
 
-```{r erq-prediction, fig.width=8, fig.height=4}
+##### Multiple Regression
+
+Nothing.
+
+```{r multiple-erq-prediction, fig.width=8, fig.height=4}
+```
+
+##### Single Regressions
+
+The Reappraisal subscale was significant and it choose subject 2 as an outlier.
+
+```{r single-erq-prediction, fig.width=8, fig.height=4}
 ```
 
 #### PANAS SubScales
 
-```{r panas-prediction, fig.width=8, fig.height=4}
+##### Multiple Regression
+
+Nothing.
+
+```{r multiple-panas-prediction, fig.width=8, fig.height=4}
+```
+
+##### Single Regression
+
+Nothing.
+
+```{r single-panas-prediction, fig.width=8, fig.height=4}
 ```
 

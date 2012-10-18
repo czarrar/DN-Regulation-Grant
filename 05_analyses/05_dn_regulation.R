@@ -120,6 +120,8 @@ df <- data.frame(
     rest_conn
 )
 colnames(df)[[1]] <- "Subject"
+# Save
+write.csv(df, file="z_data1.csv")
 # Needed functions
 to_outlier <- function(x) factor((x>0.1)*1, levels=c(0,1), labels=c("yes", "no"))
 wrap_lmrob <- function(f, df) {
@@ -140,7 +142,7 @@ p <- ggplot(tdf, aes(x=kurtosis, y=prediction)) +
         labs(x="DMN Kurtosis", y="DN Regulation (Fischer Z)")
 if (any(tdf$outlier=="yes")) {
     p <- p + geom_point(aes(color=outlier)) + 
-            geom_smooth(data=tdf[tdf$outlier=="no",], method="lm") + 
+            geom_smooth(data=tdf[tdf$outlier=="no",], method=rlm) + 
             scale_color_manual(values=c("black","red"))
 } else {
     p <- p + geom_point() + geom_smooth(method="lm")
@@ -157,7 +159,7 @@ p <- ggplot(tdf, aes(x=lag, y=prediction)) +
         ylab("DN Regulation (Fischer Z)")
 if (any(tdf$outlier=="yes")) {
     p <- p + geom_point(aes(color=outlier)) + 
-            geom_smooth(data=tdf[tdf$outlier=="no",], method="lm") + 
+            geom_smooth(data=tdf[tdf$outlier=="no",], method=rlm) + 
             scale_color_manual(values=c("black","red"))
 } else {
     p <- p + geom_point() + geom_smooth(method="lm")
@@ -174,7 +176,7 @@ p <- ggplot(tdf, aes(x=nchanges, y=prediction)) +
         ylab("DN Regulation (Fischer Z)")
 if (any(tdf$outlier=="yes")) {
     p <- p + geom_point(aes(color=outlier)) + 
-            geom_smooth(data=tdf[tdf$outlier=="no",], method="lm") + 
+            geom_smooth(data=tdf[tdf$outlier=="no",], method=rlm) + 
             scale_color_manual(values=c("black","red"))
 } else {
     p <- p + geom_point() + geom_smooth(method="lm")
@@ -190,14 +192,14 @@ tmpdf <- data.frame(
 )
 # Outliers
 tmpdf <- ddply(tmpdf, .(network), function(sdf) {
-    wrap_lmrob(connectivity ~ Age + Sex + prediction, sdf)
+    wrap_lmrob(prediction ~ Age + Sex + connectivity, sdf)
 })
 # Plot
 ggplot(tmpdf, aes(x=connectivity, y=prediction, shape=network)) + 
     geom_vline(aes(xintercept=0), linetype='dashed') + 
     geom_hline(aes(yintercept=0)) + 
     geom_point() + 
-    geom_smooth(method="lm") + 
+    geom_smooth(method=rlm) + 
     facet_grid(network ~ .) + 
     labs(x="Connectivity with DMN (Fischer Z)", y="DN Regulation (Fischer Z)")
 
@@ -261,29 +263,106 @@ brainbehavior.multiple <- function(names) {
     }
     p
 }
+brainbehavior.single <- function(names) {
+    # Significance
+    bb.df <- ldply(names, function(name) {
+        cat("\nRunning regression for", name, "\n")
+        f <- paste("prediction ~ Age + Sex +", name)
+        f <- as.formula(f)
+        tdf <- wrap_lmrob(f, df)
+        tdf$id <- 1:nrow(tdf)
+        tdf$measure <- name
+        tdf$behavior <- tdf[[name]]
+        cat("\n")
+        tdf[,c("id", "Subject", "measure", "behavior", "prediction", "outlier", "weights")]
+    })
+    bb.df$measure <- factor(bb.df$measure)
+    bb.df$outlier <- factor(bb.df$outlier)
+    
+        
+    # Get best fit line
+    grid <- ddply(bb.df, .(measure), function(sdf) {
+        model <- lmrob(prediction ~ behavior, sdf, maxit.scale=500)
+        sgrid <- data.frame(
+            behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20)
+        )
+        sgrid$prediction <- predict(model, newdata=sgrid)
+        sgrid$measure <- sdf$measure[1]
+        sgrid
+    })
+    
+    # Plot
+    p0 <- ggplot(bb.df, aes(x=behavior, y=prediction)) +
+            geom_hline(aes(yintercept=0)) + 
+            ylim(0,0.6) + 
+            xlab("Scale Score") + 
+            ylab("DN Regulation (Fischer Z)") + 
+            facet_grid(. ~ measure, scales="free_x")
+    if (any(bb.df$outlier=="yes")) {
+        p <- p0 + 
+                geom_point(data=bb.df[bb.df$outlier=="yes",], size=8, 
+                            color=brewer.pal(3,"Pastel1")[1]) +
+                geom_point(aes(color=measure), shape=1, size=8) +
+                geom_text(aes(label=id), size=5) +
+                geom_line(data=grid, color="blue") + 
+                scale_color_discrete(name="Measure")
+    } else {
+        p <- p0 + 
+                geom_point(aes(color=measure), shape=1, size=8) +
+                geom_text(aes(label=id), size=5) +
+                geom_line(data=grid, color="blue") + 
+                scale_color_discrete(name="Measure")
+    }
+    p
+}
 
-## @knitr totals-prediction
+## @knitr multiple-totals-prediction
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
 brainbehavior.multiple(names)
 
-## @knitr totals-prediction-no-bdi
+## @knitr multiple-totals-prediction-no-bdi
 names <- c("SIPI", "RRS", "ERQ", "AIM")
 brainbehavior.multiple(names)
 
-## @knitr sipi-prediction
+## @knitr multiple-sipi-prediction
 names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
-brainbehavior(names)
+brainbehavior.multiple(names)
 
-## @knitr erq-prediction
+## @knitr multiple-erq-prediction
 names <- c("ERQ_Reappraisal", "ERQ_Suppression")
-brainbehavior(names)
+brainbehavior.multiple(names)
 
-## @knitr rrs-prediction
+## @knitr multiple-rrs-prediction
 names <- c("RRS_Brooding", "RRS_Reflection", "RRS_Depression")
-brainbehavior(names)
+brainbehavior.multiple(names)
 
-## @knitr panas-prediction
+## @knitr multiple-panas-prediction
 names <- c("PANAS_Positive", "PANAS_Negative")
-brainbehavior(names)
+brainbehavior.multiple(names)
+
+
+## @knitr single-totals-prediction
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.single(names)
+
+## @knitr single-totals-prediction-no-bdi
+names <- c("SIPI", "RRS", "ERQ", "AIM")
+brainbehavior.single(names)
+
+## @knitr single-sipi-prediction
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.single(names)
+
+## @knitr single-erq-prediction
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.single(names)
+
+## @knitr single-rrs-prediction
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+brainbehavior.single(names)
+
+## @knitr single-panas-prediction
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.single(names)
 
 
