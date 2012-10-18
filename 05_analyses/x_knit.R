@@ -15,6 +15,7 @@ thm <- knit_theme$get('acid')
 knit_theme$set(thm)
 
 infile <- file_path_as_absolute(args[1])
+if (file_ext(infile) != "Rmd") stop("Input file must have extension .Rmd")
 #stylesheet <- file_path_as_absolute('foundation/stylesheets/foundation.css')
 
 setwd("/home/data/Projects/CCD/reports")

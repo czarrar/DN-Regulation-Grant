@@ -23,13 +23,13 @@ tps <- 8:10
 ## @knitr phenotypes
 fname <- file.path(basedir, "behavior/ccd_totals.csv")
 phenos <- read.csv(fname, row.names=1)
-phenos <- phenos[14:27,][-8,]  # CCD014 ... CCD027
+phenos <- phenos[14:27,][-c(8,13),]  # CCD014 ... CCD027 (NO CCD021 and CCD026)
 
 ## @knitr connectivity
 # Read in time-series
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D")))
+fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D"))) # (NO CCD021 and CCD026)
 tcs <- laply(fnames, function(f) as.matrix(read.table(f)))
-tcs <- tcs[12:24,,] # CCD014 ... CCD027
+tcs <- tcs[12:23,,] # CCD014 ... CCD027
 # Calculate correlations
 rest_conn_all <- aaply(tcs, 1, cor)
 rest_conn <- rest_conn_all[,tps,1]   # only look at DMN connectivity with TP networks
@@ -81,7 +81,7 @@ plot(bcp(tcs[1,,4]))
 ## @knitr prediction
 fname <- file.path(basedir, "behavior/CCD_full_dframe.csv")
 preds <- read.csv(fname)
-preds <- preds[,c(2,6,10)] # only look at DMN
+preds <- preds[-c(23,24),c(2,6,10)] # no CCD026; only look at DMN
 colnames(preds)[3] <- "R"
 preds$Z <- atanh(preds$R)
 # Plot distribution
@@ -210,7 +210,7 @@ d <- as.dist(1-cor(t(rest_conn)))
 adonis(d ~ Age + Sex + prediction, df, permutations=4999)
 
 ## @knitr functions-prediction
-brainbehavior <- function(names) {
+brainbehavior.multiple <- function(names) {
     # Significance
     f <- paste("prediction ~ Age + Sex +", paste(names, collapse=" + "))
     f <- as.formula(f)
@@ -227,36 +227,36 @@ brainbehavior <- function(names) {
         sdf
     })
     
-    ## Get best fit line
-    #model <- lmrob(prediction ~ measure, bb.df)
-    #grid <- ddply(bb.df, .(measure), function(sdf) {
-    #    data.frame(
-    #        behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20), 
-    #        measure=rep(sdf$measure[1], 20)
-    #    )
-    #})
-    #grid$prediction <- predict(model, newdata=grid)
+    # Get best fit line
+    model <- lmrob(prediction ~ behavior + measure, bb.df, maxit.scale=500)
+    grid <- ddply(bb.df, .(measure), function(sdf) {
+        data.frame(
+            behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20), 
+            measure=rep(sdf$measure[1], 20)
+        )
+    })
+    grid$prediction <- predict(model, newdata=grid)
     
     # Plot
-    p <- ggplot(bb.df, aes(x=behavior, y=prediction, label=id)) +
+    p0 <- ggplot(bb.df, aes(x=behavior, y=prediction)) +
             geom_hline(aes(yintercept=0)) + 
             ylim(0,0.6) + 
             xlab("Scale Score") + 
             ylab("DN Regulation (Fischer Z)") + 
             facet_grid(. ~ measure, scales="free_x")
     if (any(bb.df$outlier=="yes")) {
-        p <- p + 
+        p <- p0 + 
                 geom_point(data=bb.df[bb.df$outlier=="yes",], size=8, 
                             color=brewer.pal(3,"Pastel1")[1]) +
                 geom_point(aes(color=measure), shape=1, size=8) +
-                geom_text(size=5) +
-                geom_smooth(method=rlm) + 
+                geom_text(aes(label=id), size=5) +
+                geom_line(data=grid, color="blue") + 
                 scale_color_discrete(name="Measure")
     } else {
-        p <- p + 
+        p <- p0 + 
                 geom_point(aes(color=measure), shape=1, size=8) +
-                geom_text(size=5) +
-                geom_smooth(method=rlm) + 
+                geom_text(aes(label=id), size=5) +
+                geom_line(data=grid, color="blue") + 
                 scale_color_discrete(name="Measure")
     }
     p
@@ -264,7 +264,11 @@ brainbehavior <- function(names) {
 
 ## @knitr totals-prediction
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
-brainbehavior(names)
+brainbehavior.multiple(names)
+
+## @knitr totals-prediction-no-bdi
+names <- c("SIPI", "RRS", "ERQ", "AIM")
+brainbehavior.multiple(names)
 
 ## @knitr sipi-prediction
 names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")

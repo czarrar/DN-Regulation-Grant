@@ -112,9 +112,16 @@ Had to throw this in. The first analysis is significant, so the pattern of conne
 
 #### Total Scale Scores
 
+##### With BDI
+
 The RRS is significant with the ERQ and BDI being marginally significant.
 
 ```{r totals-prediction, fig.width=12, fig.height=4}
+```
+
+##### Without BDI
+
+```{r totals-prediction-no-bdi, fig.width=12, fig.height=4}
 ```
 
 ### RRS SubScales
