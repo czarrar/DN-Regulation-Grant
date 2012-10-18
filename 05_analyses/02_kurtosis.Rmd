@@ -1,0 +1,90 @@
+# Kurtosis
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('02_kurtosis.R')
+```
+
+## Setup
+
+```{r general-setup, messages='hide', resuls='hide'}
+```
+
+```{r network-setup}
+```
+
+## Read in Data
+
+```{r phenotypes}
+```
+
+```{r timeseries, results='hide'}
+```
+
+Analyses will focus on the default-mode network so restrict time-series to only this network.
+
+```{r only-dmn}
+```
+
+## Calculate Kurtosis
+
+```{r kurtosis, results='hide'}
+```
+
+## Combine Phenotypic and Kurtosis Data
+
+```{r combine}
+```
+
+### Bi-Modal Rest Kurtosis Distribution
+
+```{r dist}
+```
+The distribution for the kurtosis values during rest appear bimodal (1st figure).Thus, we fit a Gaussian mixture model to the distribution, separating individuals based on the resulting clustering and running analyses separetly for each group. This would be in addition to running the analyses with all subjects together in one group.
+
+I used the `mixtools` library with default settings. Group assignment was determined based on a posterior probability  greater than 0.5 for one group vs another.
+
+```{r bimodal, messages='hide'}
+
+```
+
+## ANOVAs
+
+### For Total Scores
+
+First, we will look at the relationship between total phenotypic scores and DMN kurtosis.
+
+```{r anova-totals}
+```
+
+### For Certain SubScales
+
+Now, we will look at the relationship between subscale phenotypic scores and DMN kurtosis. I will only be looking at the following subscales:
+
+* RRS
+    * Brooding
+    * Reflection
+    * Depression
+* PANAS
+    * Positive
+    * Negative
+
+```{r anova-subscales}
+```
+
+## ANOVAs for Bi-Modal Group Stratification
+
+Note that due to small number of subjects in the positive group and the consequent decreased degrees of freedom, I had to run the analyses for the positive group in seperate regressions instead of one multiple regression.
+
+### For Total Scores
+
+```{r bi-anova-totals}
+```
+
+### For Certain SubScales
+
+**Only one significant relationship, RRS Brooding with DMN Kurtosis.**
+
+```{r bi-anova-subscales}
+```
