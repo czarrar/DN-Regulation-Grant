@@ -321,7 +321,7 @@ names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
 brainbehavior.multiple(names)
 
 ## @knitr multiple-totals-prediction-no-bdi
-names <- c("SIPI", "RRS", "ERQ", "AIM")
+names <- c("SIPI", "RRS", "ERQ", "AIM", "PANAS_Positive", "PANAS_Negative")
 brainbehavior.multiple(names)
 
 ## @knitr multiple-sipi-prediction

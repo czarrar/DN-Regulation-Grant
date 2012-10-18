@@ -110,7 +110,7 @@ Had to throw this in. The first analysis is significant, so the pattern of conne
 ```{r functions-prediction}
 ```
 
-#### Total Scale Scores (with BDI)
+#### Total Scale Scores (with BDI, without PANAS)
 
 ##### Multiple Regression
 
@@ -126,11 +126,15 @@ Here, SIPI and RRS are both significant and subject 1 is an outlier in the AIM a
 ```{r single-totals-prediction, fig.width=12, fig.height=4}
 ```
 
-#### Total Scale Scores (without BDI)
+#### Total Scale Scores (with PANAS, without BDI)
 
 ##### Multiple Regression
 
+RRS is significant and ERQ is marginally significant.
+
+**BELOW IS RELEVANT FOR A MODEL WITHOUT PANAS**
 Not sure why BDI had such a huge effect since now every measure except ERQ is significant. However, oddly subjects 3 and 5 are outliers even though they seem to fit the data fairly well. Note there is a disconnect with the way I run the regression to get significance and the way I get build the best fit lines...I can explain this more in person or on the phone.
+**ABOVE IS RELEVANT FOR A MODEL WITHOUT PANAS**
 
 ```{r multiple-totals-prediction-no-bdi, fig.width=12, fig.height=4}
 ```

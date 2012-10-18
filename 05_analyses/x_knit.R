@@ -14,12 +14,15 @@ opts_knit$set(out.format = "html")
 thm <- knit_theme$get('acid')
 knit_theme$set(thm)
 
+d <- dirname(args[1])
 infile <- file_path_as_absolute(args[1])
 if (file_ext(infile) != "Rmd") stop("Input file must have extension .Rmd")
 #stylesheet <- file_path_as_absolute('foundation/stylesheets/foundation.css')
 
 setwd("/home/data/Projects/CCD/reports")
-outfile <- paste("./", file_path_sans_ext(basename(infile)), ".html", sep="")
+if (d != "." && !file.exists(d))
+    dir.create(d, recursive=TRUE)
+outfile <- paste(d, "/", file_path_sans_ext(basename(infile)), ".html", sep="")
 
 #knit2html(infile, output=outfile, stylesheet=stylesheet)
 knit2html(infile, output=outfile)
