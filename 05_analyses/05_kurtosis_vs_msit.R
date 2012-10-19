@@ -27,8 +27,6 @@ fname <- file.path(scriptdir, "z_predesign.csv")
 subinfo <- read.csv(fname)
 subinfo$study <- factor(subinfo$study, labels=c("CCB", "CCD"))
 subinfo$sex <- factor(subinfo$sex)
-# Remove CCD participants with high errors
-subinfo <- subinfo[!((subinfo$subject=="CCD004"|subinfo$subject=="CCD008")&(subinfo$run==1)),]
 # Plot Age
 ggplot(subinfo, aes(x=age, fill=..count..)) + geom_histogram(binwidth=5) + facet_grid(study ~ .)
 # Plot Sex

@@ -50,8 +50,8 @@ ccd_all = DataFrame({'subject': subjects, 'run': runs}, columns=['subject', 'run
 ccd_all['scan'] = 1
 
 # exclude CCD004 run 1; CCD008 run 1
-bad_inds = ((ccd_all.subject == "CCB004") & (ccd_all.run == 1)) | ((ccd_all.subject == "CCB008") & (ccd_all.run == 1))
-ccd_filt0 = ccd_all[~bad_inds]
+bad_inds = ((ccd_all.subject == "CCD004") & (ccd_all.run == 1)) | ((ccd_all.subject == "CCD008") & (ccd_all.run == 1))
+ccd_filt0 = ccd_all.ix[~bad_inds,:]
 
 # get demographics
 ccd_filt1 = read_csv(path.join(basepath, "behavior/ccd_all_filtered.csv"))[["study_id", "Age", "Sex"]]
@@ -59,7 +59,7 @@ ccd_filt1.columns = ["subject", "age", "sex"]
 ccd_filt1.subject = [ s.upper() for s in ccd_filt1.subject ]
 
 # merge demographics with run info and save
-ccd_filt = merge(ccd_filt0, ccd_filt1, on="subject", how="inner")
+ccd_filt = merge(ccd_filt0, ccd_filt1, on="subject", how="left")
 ccd_filt['study'] = 2
 ccd_filt = ccd_filt[["subject", "age", "sex", "study", "scan", "run"]]
 ccd_filt.sex[ccd_filt.sex=="Male"] = "M"

@@ -72,7 +72,6 @@
 /home/data/Projects/CCD/analysis/subjects/CCB038/msit_01/run_02/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD003/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD003/msit/run_02/task_hrf.feat
-/home/data/Projects/CCD/analysis/subjects/CCD004/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD004/msit/run_02/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD005/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD005/msit/run_02/task_hrf.feat
@@ -80,7 +79,6 @@
 /home/data/Projects/CCD/analysis/subjects/CCD006/msit/run_02/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD007/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD007/msit/run_02/task_hrf.feat
-/home/data/Projects/CCD/analysis/subjects/CCD008/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD008/msit/run_02/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD009/msit/run_01/task_hrf.feat
 /home/data/Projects/CCD/analysis/subjects/CCD009/msit/run_02/task_hrf.feat

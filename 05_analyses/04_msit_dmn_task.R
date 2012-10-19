@@ -23,7 +23,8 @@ tps <- 8:10
 ###
 
 ## @knitr subject-info
-phenos <- read.csv(file.path(basedir, "scripts/data/ccd_totals_touse.csv"))[1:9,-1] # only CCD subjects with MSIT
+# only CCD subjects with MSIT
+phenos <- read.csv(file.path(basedir, "scripts/data/ccd_totals_touse.csv"))[1:9,-1] 
 subinfo <- read.csv(file.path(scriptdir, "z_predesign.csv"))
 subinfo$study <- factor(subinfo$study, labels=c("CCB", "CCD"))
 subinfo$scan <- factor(subinfo$scan)

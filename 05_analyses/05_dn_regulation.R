@@ -21,7 +21,7 @@ tps <- 8:10
 ## @knitr -----------break-------------
 
 ## @knitr phenotypes
-fname <- file.path(basedir, "behavior/ccd_totals.csv")
+fname <- file.path(basedir, "scripts/data/ccd_totals.csv")
 phenos <- read.csv(fname, row.names=1)
 phenos <- phenos[14:27,][-c(8,13),]  # CCD014 ... CCD027 (NO CCD021 and CCD026)
 
