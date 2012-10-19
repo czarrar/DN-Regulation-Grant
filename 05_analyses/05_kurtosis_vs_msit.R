@@ -103,11 +103,11 @@ kurtosis_rest <- ddply(kurtosis_rest, .(subject), numcolwise(mean))
 df <- merge(correlation_msit_dmn, kurtosis_rest, by='subject')
 # plot msit-dmn
 ggplot(df, aes(x=z, fill=..count..)) + 
-    geom_histogram(binwidth=5) + 
+    geom_histogram(binwidth=0.1) + 
     labs(x="Correlation between MSIT task design & DN signal", y="Count")
 # plot kurtosis
 ggplot(df, aes(x=kurtosis, fill=..count..)) + 
-    geom_histogram(binwidth=5) + 
+    geom_histogram(binwidth=0.1) + 
     labs(x="Kurtosis During Rest in DN", y="Count")
 
 

@@ -212,9 +212,12 @@ d <- as.dist(1-cor(t(rest_conn)))
 adonis(d ~ Age + Sex + prediction, df, permutations=4999)
 
 ## @knitr functions-prediction
-brainbehavior.multiple <- function(names) {
+brainbehavior.multiple <- function(names, with_age_sex=TRUE) {
     # Significance
-    f <- paste("prediction ~ Age + Sex +", paste(names, collapse=" + "))
+    if (with_age_sex)
+        f <- paste("prediction ~ Age + Sex +", paste(names, collapse=" + "))
+    else
+        f <- paste("prediction ~", paste(names, collapse=" + "))
     f <- as.formula(f)
     tdf <- wrap_lmrob(f, df)
     
@@ -263,11 +266,14 @@ brainbehavior.multiple <- function(names) {
     }
     p
 }
-brainbehavior.single <- function(names) {
+brainbehavior.single <- function(names, with_age_sex=TRUE) {
     # Significance
     bb.df <- ldply(names, function(name) {
         cat("\nRunning regression for", name, "\n")
-        f <- paste("prediction ~ Age + Sex +", name)
+        if (with_age_sex)
+            f <- paste("prediction ~ Age + Sex +", name)
+        else
+            f <- paste("prediction ~", name)
         f <- as.formula(f)
         tdf <- wrap_lmrob(f, df)
         tdf$id <- 1:nrow(tdf)
@@ -360,5 +366,51 @@ brainbehavior.single(names)
 ## @knitr single-panas-prediction
 names <- c("PANAS_Positive", "PANAS_Negative")
 brainbehavior.single(names)
+
+
+## @knitr multiple-totals-prediction-just-say-no
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-totals-prediction-no-bdi-just-say-no
+names <- c("SIPI", "RRS", "ERQ", "AIM", "PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-sipi-prediction-just-say-no
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-erq-prediction-just-say-no
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-rrs-prediction-just-say-no
+names <- c("RRS_Brooding", "RRS_Reflection", "RRS_Depression")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-panas-prediction-just-say-no
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+
+## @knitr single-totals-prediction-just-say-no
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-sipi-prediction-just-say-no
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-erq-prediction-just-say-no
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-rrs-prediction-just-say-no
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-panas-prediction-just-say-no
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.single(names, with_age_sex=FALSE)
 
 

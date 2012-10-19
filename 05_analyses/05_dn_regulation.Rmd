@@ -207,3 +207,79 @@ Nothing.
 ```{r single-panas-prediction, fig.width=8, fig.height=4}
 ```
 
+### with Phenotypic Measures but NO Age and Sex
+
+```{r functions-prediction}
+```
+
+#### Total Scale Scores (with BDI, without PANAS)
+
+##### Multiple Regression
+
+```{r multiple-totals-prediction-just-say-no, fig.width=12, fig.height=4}
+```
+
+##### Single Regressions
+
+```{r single-totals-prediction-just-say-no, fig.width=12, fig.height=4}
+```
+
+#### Total Scale Scores (with PANAS, without BDI)
+
+##### Multiple Regression
+
+```{r multiple-totals-prediction-no-bdi-just-say-no, fig.width=12, fig.height=4}
+```
+
+##### Single Regressions
+
+Of course there is no point in re-running this here.
+
+#### RRS SubScales
+
+##### Multiple Regression
+
+```{r multiple-rrs-prediction-just-say-no, fig.width=10, fig.height=4}
+```
+
+##### Single Regressions
+
+```{r single-rrs-prediction-just-say-no, fig.width=10, fig.height=4}
+```
+
+#### SIPI SubScales
+
+##### Multiple Regression
+
+```{r multiple-sipi-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
+##### Single Regressions
+
+```{r single-sipi-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
+#### ERQ SubScales
+
+##### Multiple Regression
+
+```{r multiple-erq-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
+##### Single Regressions
+
+```{r single-erq-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
+#### PANAS SubScales
+
+##### Multiple Regression
+
+```{r multiple-panas-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
+##### Single Regression
+
+```{r single-panas-prediction-just-say-no, fig.width=8, fig.height=4}
+```
+
