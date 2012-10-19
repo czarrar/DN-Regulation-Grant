@@ -1,0 +1,62 @@
+# Associations between MSIT-DMN and Rest-DMN-Kurtosis
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('05_kurtosis_vs_msit.R')
+```
+
+## Setup
+
+```{r general-setup, message=FALSE, results='hide'}
+```
+
+```{r network-setup}
+```
+
+Read in subject information.
+
+```{r subject-info}
+```
+
+Get the incoherent > coherent predicted task signal together.
+
+```{r task-waver}
+```
+
+Read in the time-series data.
+
+```{r msit-ts}
+```
+
+## Pre-Analysis Calculations
+
+Get the correlation (Fischer Z transformed) between the MSIT predicted task signal and the DMN signal. For each subject, collapse this measure across scans/runs (i.e., get the mean). Note that this time, I have flipped the MSIT task to DMN signal correlation so it is generally negative.
+
+```{r msit-dmn-correlation}
+```
+
+Get the kurtosis of the DMN signal at rest. For each subject, collapse this measure across scans/runs (i.e., get the mean).
+
+```{r kurtosis}
+```
+
+Make some plots of these 2 measures.
+
+```{r combine}
+```
+
+## Plot and Significate
+
+```{r comparison-functions}
+```
+
+Ugh, not significant.
+
+```{r comparison-signif}
+```
+
+Plot doesn't look good either. 
+
+```{r comparison-plot}
+```

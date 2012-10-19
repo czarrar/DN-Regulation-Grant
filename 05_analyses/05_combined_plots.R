@@ -1,26 +1,62 @@
+## @knitr general-setup
 library(plyr)
 library(e1071)
 library(ggplot2)
-
 basedir <- "/home2/data/Projects/CCD"
+scriptdir <- file.path(basedir, "scripts/04_msit_task")
+oldtheme <- theme_set(theme_bw())
 
+## @knitr network-setup
 network_names <- c("medial visual", "occipital pole visual", "lateral visual", "default network", "cerebellum", "sensorimotor", "auditory", "executive control", "right frontoparietal", "left frontoparietal")
-nn <- gsub(" ", ".", network_names)
-important_networks <- c(4,8,9,10)
+network_names <- gsub(" ", ".", network_names)
+dmn <- which(network_names == "default.network")
+tps <- 8:10
+
+
+## @knitr -----------break-------------
+
 
 ###
 # DMN-Kurtosis with MSIT-DMN
 ###
 
-# Read in the phenotype data
-fname <- file.path(basedir, "behavior/ccd_totals_touse.csv")
-phenos <- read.csv(fname, row.names=1)[1:9,]
+## @knitr subject-info
+fname <- file.path(scriptdir, "z_predesign.csv")
+subinfo <- read.csv(fname)
+# Plot Age
+ggplot(subinfo, aes(x=age, fill=..count..)) + geom_histogram()
+# Plot Sex
+ggplot(subinfo, aes(x=sex, fill=sex)) + geom_bar()
 
-# Read in Task Waver
-waver <- read.table(file.path(basedir, "rois/waver_msit_design.1D"))
-waver <- as.vector(as.matrix(waver))
+## @knitr task-waver
+# CCB
+ccb_waver <- read.table(file.path(scriptdir, "level1_ccb_template.mat"), skip=5)
+ccb_waver <- as.matrix(ccb_waver)[,c(1,3)]
+ccb_waver <- ccb_waver[,2] - ccb_waver[,1]
+tmpdf <- data.frame(
+    time = seq(0, by=1.75, length.out=length(ccb_waver)), 
+    predicted_signal = ccb_waver
+)
+ggplot(tmpdf, aes(time, predicted_signal)) + 
+    geom_line() + 
+    xlab("Time (secs)") + 
+    ylab("Predicted Signal") +
+    ggtitle("For CCB Subjects")
+# CCD
+ccd_waver <- read.table(file.path(scriptdir, "level1_ccd_template.mat"), skip=5)
+ccd_waver <- as.matrix(ccd_waver)[,c(1,3)]
+ccd_waver <- ccd_waver[,2] - ccd_waver[,1]
+tmpdf <- data.frame(
+    time = seq(0, by=2, length.out=length(ccd_waver)), 
+    predicted_signal = ccd_waver
+)
+ggplot(tmpdf, aes(time, predicted_signal)) + 
+    geom_line() + 
+    xlab("Time (secs)") + 
+    ylab("Predicted Signal") + 
+    ggtitle("For CCD Subjects")
 
-# Read in the RSNs
+## @knitr read-rsns
 fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D")))
 rest_tcs <- llply(fnames[1:9], read.table, .progress="text")
 fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/msit/run_01/rsn10.1D")))

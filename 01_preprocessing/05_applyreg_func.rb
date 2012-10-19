@@ -32,7 +32,7 @@ p = Trollop::Parser.new do
   opt :subjects, "Which subjects to process", :type => :strings, :required => true
   opt :fwhm, "FWHM for spatial smoothing", :type => :int, :default => 6
   opt :resolution, "Resolution in mm to use for standard brain", 
-    :type => :int, :default => 3
+    :type => :int, :default => 4
 end
 opts = Trollop::with_standard_exception_handling p do
   raise Trollop::HelpNeeded if ARGV.empty? # show help screen
@@ -93,6 +93,10 @@ subjects.each do |subject|
     
     puts "\n=== Creating mask".magenta
     run "fslmaths #{func_denoise2std} -abs -Tmin -bin #{func_mask2std}"
+    
+    puts "\n=== Adding 100 for FSL".magenta
+    run "fslmaths #{func_denoise2std} -add 100 -mas #{func_mask2std} #{func_denoise2std}"
+    run "fslmaths #{func_smoothed2std} -add 100 -mas #{func_mask2std} #{func_smoothed2std}"
     
   end
 end

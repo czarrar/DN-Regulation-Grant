@@ -345,10 +345,6 @@ brainbehavior.multiple(names)
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
 brainbehavior.single(names)
 
-## @knitr single-totals-prediction-no-bdi
-names <- c("SIPI", "RRS", "ERQ", "AIM")
-brainbehavior.single(names)
-
 ## @knitr single-sipi-prediction
 names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
 brainbehavior.single(names)

@@ -70,7 +70,7 @@ subjects.each do |subject|
   wm            = "#{segdir}/wm_mask.nii.gz"
       
   puts "\n=== Checking outputs".magenta
-  #next if all_outputs_exist_including csf, wm
+  next if all_outputs_exist_including csf, wm
   
   puts "\n=== Creating output directories (if necessary)".magenta
   Dir.mkdir segdir if not File.directory? segdir
@@ -258,12 +258,12 @@ subjects.each do |subject|
           -errsum #{nvrdir}/nvr_errsum.nii.gz"
     run "3dcalc -float -a #{func} -b #{nvrdir}/nvr_fitts.nii.gz -expr 'a-b' \
           -prefix #{func_denoise}"
-  
+    
     puts "\n== Make sure the TR is correct".magenta
     run "3drefit -TR #{@TR} #{func_denoise}"
     
-    puts "\n== Add in 10,000 to be friendly with FSL".magenta
-    run "fslmaths #{func_denoise} -add 10000 #{func_denoise}"
+    #puts "\n== Add in 100 to be friendly with FSL".magenta
+    #run "fslmaths #{func_denoise} -add 100 -mas #{func_mask} #{func_denoise}"
     
     # smooth
       
@@ -271,8 +271,8 @@ subjects.each do |subject|
     run "3dBlurInMask -input #{func_denoise} -FWHM #{fwhm} \
           -mask #{func_mask} -prefix #{func_smoothed}"
     
-    puts "\n== Add in 10,000 to be friendly with FSL".magenta
-    run "fslmaths #{func_smoothed} -add 10000 #{func_smoothed}"
+    #puts "\n== Add in 100 to be friendly with FSL".magenta
+    #run "fslmaths #{func_smoothed} -add 100 -mas #{func_mask} #{func_smoothed}"
     
   end
 end
