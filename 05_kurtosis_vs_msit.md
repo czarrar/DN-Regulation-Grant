@@ -140,15 +140,15 @@ Make some plots of these 2 measures.
 ```r
 df <- merge(correlation_msit_dmn, kurtosis_rest, by = "subject")
 # plot msit-dmn
-ggplot(df, aes(x = z, fill = ..count..)) + geom_histogram(binwidth = 5) + labs(x = "Correlation between MSIT task design & DN signal", 
-    y = "Count")
+ggplot(df, aes(x = z, fill = ..count..)) + geom_histogram(binwidth = 0.1) + 
+    labs(x = "Correlation between MSIT task design & DN signal", y = "Count")
 ```
 
 ![plot of chunk combine](figure/combine1.png) 
 
 ```r
 # plot kurtosis
-ggplot(df, aes(x = kurtosis, fill = ..count..)) + geom_histogram(binwidth = 5) + 
+ggplot(df, aes(x = kurtosis, fill = ..count..)) + geom_histogram(binwidth = 0.1) + 
     labs(x = "Kurtosis During Rest in DN", y = "Count")
 ```
 
