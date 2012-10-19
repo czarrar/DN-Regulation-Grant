@@ -56,13 +56,16 @@ fnames_df <- ddply(subinfo, .(subject, study, scan, run), function(sdf) {
 })
 
 # Get time-serieses
-tss <- ddply(fnames_df, .(subject, study, scan, run), function(sdf) {
-    behav <- as.matrix(read.table(sdf$infiles))
-    bad <- behav[,2] == -1 | behav[,3] == 1
+rts <- ddply(fnames_df, .(subject, study, scan, run), function(sdf) {
+    print(sdf$infiles)
     if (sdf$study == "CCB") {
+        behav <- as.matrix(read.table(sdf$infiles))
+        bad <- behav[,2] == -1 | behav[,3] == 1
         cc <- behav[ccb_coherent & !bad, 2]
         ii <- behav[ccb_incoherent & !bad, 2]
     } else {
+        behav <- as.matrix(read.table(sdf$infiles, skip=2))
+        bad <- behav[,2] == -1 | behav[,3] == 1
         cc <- behav[ccd_coherent & !bad, 2]
         ii <- behav[ccd_incoherent & !bad, 2]            
     }
@@ -74,4 +77,4 @@ tss <- ddply(fnames_df, .(subject, study, scan, run), function(sdf) {
         rt = c(cc, ii)
     )
 })
-
+save(rts, file=file.path(datadir, "ccb+ccd_rts.rda"))
