@@ -1,4 +1,4 @@
-#!/home/data/PublicProgram/R/bin/Rscript --vanilla
+#!/usr/bin/env Rscript --vanilla
 
 args <- commandArgs(TRUE)
 
@@ -19,7 +19,10 @@ infile <- file_path_as_absolute(args[1])
 if (file_ext(infile) != "Rmd") stop("Input file must have extension .Rmd")
 #stylesheet <- file_path_as_absolute('foundation/stylesheets/foundation.css')
 
-setwd("/home/data/Projects/CCD/reports")
+argv <- commandArgs(trailingOnly = FALSE)
+reportdir <- file.path(dirname(dirname(dirname(file_path_as_absolute(substring(argv[grep("--file=", argv)], 8))))), "reports")
+print(reportdir)
+setwd(reportdir)
 if (d != "." && !file.exists(d))
     dir.create(d, recursive=TRUE)
 outfile <- paste(d, "/", file_path_sans_ext(basename(infile)), ".html", sep="")

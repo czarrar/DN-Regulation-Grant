@@ -1,0 +1,158 @@
+# RT-based Associations
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('06_rt_stuff.R')
+```
+
+## Overview
+
+Not much to see here :(.
+
+* Connectivity between DN and Executive Control network was significantly related to mean RT across both coherent and incoherent trials.
+* Connectivity between DN and Left Frontoparietal network was significantly related to RT CV for incoherent trials (and p=0.1 for coherent trials).
+* AIM was positively related to mean RT for coherent and incoherent trials.
+* RRS as well as all most of its subscales were positively related to RT CV for coherent and incoherent trials.
+* BDI was positively related to mean RT for incoherent trials.
+* PANAS negative was positively related to mean RT for incoherent trials.
+* PANAS positive was positively related to RT CV for incoherent trials.
+
+## Setup
+
+```{r general-setup, message=FALSE, results='hide'}
+```
+
+```{r network-setup}
+```
+
+```{r subject-info}
+```
+
+```{r rts}
+```
+
+```{r timeseries}
+```
+
+## Calculate measures
+
+```{r rts-summarize, message=FALSE}
+```
+
+```{r kurtosis, message=FALSE}
+```
+
+The CCD seems to be slightly positively shifted in its distribution. I hope this is not due to differences in any preprocessing steps.
+
+```{r connectivity, message=FALSE}
+```
+
+```{r combine}
+```
+
+## Assocations between RT and brain measures
+
+```{r fone}
+```
+
+### DN Kurtosis
+
+```{r kurtosis-meanrt, fig.width=8, fig.height=4}
+```
+
+```{r kurtosis-cvrt, fig.width=8, fig.height=4}
+```
+
+### TP-DN Connectivity
+
+```{r connectivity-meanrt, fig.width=8, fig.height=6}
+```
+
+```{r connectivity-cvrt, fig.width=8, fig.height=6}
+```
+
+## Associations between RT and phenotypic measures
+
+```{r ftwo}
+```
+
+All of these regression analyses were done individually (i.e., each phenotypic measure was associated with RT in an individual/seperate model).
+
+### Coherent Trials
+
+```{r select-coherent}
+```
+
+#### Mean RT
+
+```{r coherent-meanrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r coherent-meanrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r coherent-meanrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r coherent-meanrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r coherent-meanrt-panas, fig.width=8, fig.height=6}
+```
+
+#### RT CV
+
+```{r coherent-cvrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r coherent-cvrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r coherent-cvrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r coherent-cvrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r coherent-cvrt-panas, fig.width=8, fig.height=6}
+```
+
+### Incoherent Trials
+
+```{r select-incoherent}
+```
+
+#### Mean RT
+
+```{r incoherent-meanrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r incoherent-meanrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r incoherent-meanrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r incoherent-meanrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r incoherent-meanrt-panas, fig.width=8, fig.height=6}
+```
+
+#### RT CV
+
+```{r incoherent-cvrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r incoherent-cvrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r incoherent-cvrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r incoherent-cvrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r incoherent-cvrt-panas, fig.width=8, fig.height=6}
+```

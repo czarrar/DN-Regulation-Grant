@@ -5,12 +5,13 @@ library(ggplot2)
 library(robustbase)
 library(RColorBrewer)
 basedir <- dirname(dirname(getwd()))    # assume running in current direcotry
-scriptdir <- file.path(basedir, "scripts/04_msit_task")
+scriptdir <- file.path(basedir, "scripts")
+datadir <- file.path(basedir, "scripts/data")
 oldtheme <- theme_set(theme_bw())
 
 ## @knitr network-setup
-network_names <- c("medial visual", "occipital pole visual", "lateral visual", "default network", "cerebellum", "sensorimotor", "auditory", "executive control", "right frontoparietal", "left frontoparietal")
-network_names <- gsub(" ", ".", network_names)
+orig_network_names <- c("Medial Visual", "Occipital Pole Visual", "Lateral Visual", "Default Network", "Cerebellum", "Sensorimotor", "Auditory", "Executive Control", "Right Frontoparietal", "Left Frontoparietal")
+network_names <- gsub(" ", ".", tolower(orig_network_names))
 dmn <- which(network_names == "default.network")
 tps <- 8:10
 
@@ -23,7 +24,7 @@ tps <- 8:10
 ###
 
 ## @knitr subject-info
-fname <- file.path(scriptdir, "z_predesign.csv")
+fname <- file.path(scriptdir, "04_msit_task/z_predesign.csv")
 subinfo <- read.csv(fname)
 subinfo$study <- factor(subinfo$study, labels=c("CCB", "CCD"))
 subinfo$sex <- factor(subinfo$sex)
@@ -34,7 +35,7 @@ ggplot(subinfo, aes(x=sex, fill=study)) + geom_bar()
 
 ## @knitr task-waver
 # CCB
-ccb_waver <- read.table(file.path(scriptdir, "level1_ccb_template.mat"), skip=5)
+ccb_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccb_template.mat"), skip=5)
 ccb_waver <- as.matrix(ccb_waver)[,c(1,3)]
 ccb_waver <- ccb_waver[,2] - ccb_waver[,1]
 tmpdf <- data.frame(
@@ -47,7 +48,7 @@ ggplot(tmpdf, aes(time, predicted_signal)) +
     ylab("Predicted Signal") +
     ggtitle("For CCB Subjects")
 # CCD
-ccd_waver <- read.table(file.path(scriptdir, "level1_ccd_template.mat"), skip=5)
+ccd_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccd_template.mat"), skip=5)
 ccd_waver <- as.matrix(ccd_waver)[,c(1,3)]
 ccd_waver <- ccd_waver[,2] - ccd_waver[,1]
 tmpdf <- data.frame(
@@ -62,7 +63,7 @@ ggplot(tmpdf, aes(time, predicted_signal)) +
 
 ## @knitr msit-ts
 # this loads the 'tss' object with attr(tss, 'split_labels') to get how stuff should be organized
-load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
+load(file.path(datadir, "ccb+ccd_time_series.rda"))
 splitter <- attr(tss, 'split_labels')
 splitter$index <- 1:nrow(splitter)
 
@@ -83,31 +84,33 @@ correlation_msit_dmn <- ddply(sub_splitter, .(subject, study, scan, run), functi
     else
         r <- cor(ts, ccd_waver)
     z <- atanh(r)
-    c(r=r, z=z)    
+    c(msit.r=r, msit.z=z)    
 })
 # collapse across scan and run
-correlation_msit_dmn <- ddply(correlation_msit_dmn, .(subject), numcolwise(mean))
+correlation_msit_dmn <- ddply(correlation_msit_dmn, .(study, subject), numcolwise(mean))
+# plot
+ggplot(correlation_msit_dmn, aes(x=msit.z)) + 
+    geom_histogram(aes(fill=..count..), binwidth=0.1) + 
+    facet_grid(. ~ study) + 
+    xlab("Correlations between MSIT task design and DN Signal (Fischer Z)")
 
-## @knitr kurtosis
-sub_splitter <- subset(splitter, condition=="REST")
-kurtosis_rest <- ddply(sub_splitter, .(subject, study, scan, run), function(sdf) {
-    ts <- tss[[sdf$index]][,dmn]
-    c(kurtosis=kurtosis(ts))
+## @knitr connectivity
+connectivity_rest <- ddply(sub_splitter, .(study, subject, scan, run), function(sdf) {
+    ts <- tss[[sdf$index]][,c(dmn,tps)]
+    rs <- cor(ts)[-1,1]
+    zs <- atanh(rs)
+    data.frame(network=orig_network_names[tps], connectivity.r=rs, connectivity.z=zs)
 })
 # collapse across scan and run
-kurtosis_rest <- ddply(kurtosis_rest, .(subject), numcolwise(mean))
+connectivity_rest <- ddply(connectivity_rest, .(study, subject, network), numcolwise(mean))
+# plot
+ggplot(connectivity_rest, aes(x=connectivity.z)) + 
+    geom_histogram(aes(fill=..count..), binwidth=0.1) + 
+    facet_grid(network ~ study) + 
+    xlab("Connectivity with DMN (Fischer Z)")
 
 ## @knitr combine
-df <- merge(correlation_msit_dmn, kurtosis_rest, by='subject')
-# plot msit-dmn
-ggplot(df, aes(x=z, fill=..count..)) + 
-    geom_histogram(binwidth=0.1) + 
-    labs(x="Correlation between MSIT task design & DN signal", y="Count")
-# plot kurtosis
-ggplot(df, aes(x=kurtosis, fill=..count..)) + 
-    geom_histogram(binwidth=0.1) + 
-    labs(x="Kurtosis During Rest in DN", y="Count")
-
+df <- merge(correlation_msit_dmn, connectivity_rest, by=c("study", "subject"))
 
 
 ## @knitr -----------break-------------
@@ -117,7 +120,7 @@ ggplot(df, aes(x=kurtosis, fill=..count..)) +
 # Plot and significance
 ###
 
-## @knitr comparison-functions
+## @knitr functions
 to_outlier <- function(x) factor((x>0.1)*1, levels=c(0,1), labels=c("yes", "no"))
 wrap_lmrob <- function(f, df) {
     reg <- summary(lmrob(f, df, maxit.scale=500))
@@ -128,19 +131,26 @@ wrap_lmrob <- function(f, df) {
     df
 }
 
-## @knitr comparison-signif
-tmpdf <- wrap_lmrob(z ~ kurtosis, df)
+## @knitr signif
+tmpdf <- ddply(df, .(network), function(sdf) {
+    cat("\nConnectivity between DN and", as.character(sdf$network[1]), "\n")  
+    wrap_lmrob(msit.z ~ connectivity.z, sdf)
+})
 
-## @knitr comparison-plot
-grid <- data.frame(
-    kurtosis = seq(min(df$kurtosis), max(df$kurtosis), length=20)
-)
-grid$z <- predict(lmrob(z ~ kurtosis, tmpdf, maxit.scale=500), newdata=grid)
-p0 <- ggplot(tmpdf, aes(x=kurtosis, y=z)) +
+## @knitr plots
+grid <- ddply(df, .(network), function(sdf) {
+    grid <- data.frame(
+        connectivity.z = seq(min(sdf$connectivity.z), max(sdf$connectivity.z), length=20)
+    )
+    grid$msit.z <- predict(lmrob(msit.z ~ connectivity.z, tmpdf, maxit.scale=500), newdata=grid)
+    grid
+})
+p0 <- ggplot(tmpdf, aes(x=connectivity.z, y=msit.z)) +
         geom_hline(aes(yintercept=0)) + 
         geom_vline(aes(yintercept=0), linetype='dashed') + 
-        xlab("DN Kurtosis During Rest") + 
-        ylab("Correlation between DN Signal\n& MSIT Task Design")
+        facet_grid(. ~ network) + 
+        xlab("Connectivity with DN (Fischer Z)") + 
+        ylab("Correlation between DN Signal\n& MSIT Task Design (Fischer Z)")
 if (any(df$outlier=="yes")) {
     p <- p0 + 
             geom_point(data=tmpdf[tmpdf$outlier=="yes",], size=8, 
@@ -155,4 +165,5 @@ if (any(df$outlier=="yes")) {
             geom_line(data=grid, color="blue") + 
             scale_color_discrete(name="Measure")
 }
-p
+print(p)
+

@@ -4,8 +4,9 @@ library(e1071)
 library(ggplot2)
 library(RColorBrewer)
 library(robustbase)
-basedir <- "/home2/data/Projects/CCD"
+basedir <- dirname(dirname(getwd()))    # assume running in current direcotry
 scriptdir <- file.path(basedir, "scripts/04_msit_task")
+datadir <- file.path(basedir, "scripts/data")
 oldtheme <- theme_set(theme_bw())
 
 ## @knitr network-setup
@@ -24,14 +25,12 @@ tps <- 8:10
 
 ## @knitr subject-info
 # only CCD subjects with MSIT
-phenos <- read.csv(file.path(basedir, "scripts/data/ccd_totals_touse.csv"))[1:9,-1] 
+phenos <- read.csv(file.path(datadir, "ccd_totals_touse.csv"))[1:9,-1] 
 subinfo <- read.csv(file.path(scriptdir, "z_predesign.csv"))
 subinfo$study <- factor(subinfo$study, labels=c("CCB", "CCD"))
 subinfo$scan <- factor(subinfo$scan)
 subinfo$run <- factor(subinfo$run)
 subinfo$sex <- factor(subinfo$sex)
-# Remove CCD participants with high errors
-subinfo <- subinfo[!((subinfo$subject=="CCD004"|subinfo$subject=="CCD008")&(subinfo$run==1)),]
 # Plot Age
 ggplot(subinfo, aes(x=age, fill=..count..)) + 
     geom_histogram(binwidth=5) + 
@@ -141,8 +140,8 @@ p <- ggplot(ccb_msit_tc_ave) +
         scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
                             values=brewer.pal(4, "Pastel2")[-4]) + 
         geom_line(aes(x=timepoint, y=bold), color="darkblue", size=0.75) + 
-        scale_x_discrete(name="Time (secs)", limits=c(0,224*1.75), expand=c(0,0)) + 
-        scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), expand=c(0,0))
+        scale_x_continuous(name="Time (secs)", limits=c(0,224*1.75), breaks=c(0,100,200,300,224*1.75), expand=c(0,0)) + 
+        scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), breaks=round(seq(-0.3,0.3,0.1),1), expand=c(0,0))
 print(p)      
 # CCD
 p <- ggplot(ccd_msit_tc_ave) +
@@ -150,8 +149,8 @@ p <- ggplot(ccd_msit_tc_ave) +
         scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
                             values=brewer.pal(4, "Pastel2")[-4]) + 
         geom_line(aes(x=timepoint, y=bold), color="darkblue", size=0.75) + 
-        scale_x_discrete(name="Time (secs)", limits=c(0,153*2), expand=c(0,0)) + 
-        scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), expand=c(0,0))
+        scale_x_continuous(name="Time (secs)", limits=c(0,153*2), expand=c(0,0)) + 
+        scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), breaks=round(seq(-0.3,0.3,0.1),1), expand=c(0,0))
 print(p)      
 
 
