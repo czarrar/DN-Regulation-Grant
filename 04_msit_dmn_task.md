@@ -17,8 +17,9 @@ library(e1071)
 library(ggplot2)
 library(RColorBrewer)
 library(robustbase)
-basedir <- "/home2/data/Projects/CCD"
+basedir <- dirname(dirname(getwd()))  # assume running in current direcotry
 scriptdir <- file.path(basedir, "scripts/04_msit_task")
+datadir <- file.path(basedir, "scripts/data")
 oldtheme <- theme_set(theme_bw())
 ```
 
@@ -36,16 +37,13 @@ tps <- 8:10
 
 
 ```r
-phenos <- read.csv(file.path(basedir, "scripts/data/ccd_totals_touse.csv"))[1:9, 
-    -1]  # only CCD subjects with MSIT
+# only CCD subjects with MSIT
+phenos <- read.csv(file.path(datadir, "ccd_totals_touse.csv"))[1:9, -1]
 subinfo <- read.csv(file.path(scriptdir, "z_predesign.csv"))
 subinfo$study <- factor(subinfo$study, labels = c("CCB", "CCD"))
 subinfo$scan <- factor(subinfo$scan)
 subinfo$run <- factor(subinfo$run)
 subinfo$sex <- factor(subinfo$sex)
-# Remove CCD participants with high errors
-subinfo <- subinfo[!((subinfo$subject == "CCD004" | subinfo$subject == "CCD008") & 
-    (subinfo$run == 1)), ]
 # Plot Age
 ggplot(subinfo, aes(x = age, fill = ..count..)) + geom_histogram(binwidth = 5) + 
     facet_grid(study ~ .)
@@ -164,13 +162,14 @@ p <- ggplot(ccb_msit_tc_ave) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin,
     xmax = xmax, ymin = -Inf, ymax = Inf, fill = block)) + scale_fill_manual(name = "", 
     breaks = c("Fixation", "Coherent", "Incoherent"), values = brewer.pal(4, 
         "Pastel2")[-4]) + geom_line(aes(x = timepoint, y = bold), color = "darkblue", 
-    size = 0.75) + scale_x_discrete(name = "Time (secs)", limits = c(0, 224 * 
-    1.75), expand = c(0, 0)) + scale_y_continuous(name = "BOLD Signal", limits = c(-0.3, 
-    0.3), expand = c(0, 0))
+    size = 0.75) + scale_x_continuous(name = "Time (secs)", limits = c(0, 224 * 
+    1.75), breaks = c(0, 100, 200, 300, 224 * 1.75), expand = c(0, 0)) + scale_y_continuous(name = "BOLD Signal", 
+    limits = c(-0.3, 0.3), breaks = round(seq(-0.3, 0.3, 0.1), 1), expand = c(0, 
+        0))
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.png) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.postscript) 
 
 ```r
 # CCD
@@ -178,13 +177,13 @@ p <- ggplot(ccd_msit_tc_ave) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin,
     xmax = xmax, ymin = -Inf, ymax = Inf, fill = block)) + scale_fill_manual(name = "", 
     breaks = c("Fixation", "Coherent", "Incoherent"), values = brewer.pal(4, 
         "Pastel2")[-4]) + geom_line(aes(x = timepoint, y = bold), color = "darkblue", 
-    size = 0.75) + scale_x_discrete(name = "Time (secs)", limits = c(0, 153 * 
+    size = 0.75) + scale_x_continuous(name = "Time (secs)", limits = c(0, 153 * 
     2), expand = c(0, 0)) + scale_y_continuous(name = "BOLD Signal", limits = c(-0.3, 
-    0.3), expand = c(0, 0))
+    0.3), breaks = round(seq(-0.3, 0.3, 0.1), 1), expand = c(0, 0))
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.png) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.postscript) 
 
 
 ## Correlations Between Task Design and DN Signal
@@ -337,8 +336,43 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## Error: dgels: weighted design matrix not of full rank (column 8). Exiting.
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+## [1]  0.04871  0.10021  0.05614  0.05816  0.06820 -0.00231 -0.09814 -0.06020
+## [9] -0.17335
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.514484   0.827303   -0.62     0.65
+## age         -0.000628   0.004587   -0.14     0.91
+## sexM        -0.061436   0.058219   -1.06     0.48
+## SIPI        -0.002316   0.002025   -1.14     0.46
+## RRS          0.001445   0.002459    0.59     0.66
+## ERQ         -0.006678   0.005393   -1.24     0.43
+## BDI         -0.014238   0.004510   -3.16     0.20
+## AIM          0.008326   0.005502    1.51     0.37
+## 
+## Robust residual standard error: 0.399 
+## Convergence in 5 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.999 0.994 0.998 0.998 0.997 1.000 0.995 0.998 0.983
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
 ```
+
+![plot of chunk multiple-totals-correlation-bdi](figure/multiple-totals-correlation-bdi.png) 
 
 
 #### Single Regressions
@@ -526,39 +560,48 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## Warning: S refinements did not converge (to tol=1e-07) in 200 iterations
+## Warning: NaNs produced
 ```
 
 ```
-## Warning: S refinements did not converge (to tol=1e-07) in 200 iterations
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Residuals:
+## [1] -7.22e-16 -4.44e-16  5.27e-16  5.00e-16  3.33e-16  1.11e-15 -8.33e-17
+## [8] -2.22e-16 -5.55e-17
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)
+## (Intercept)    -6.23608         NA      NA       NA
+## age             0.07006    0.00000     Inf       NA
+## sexM            0.59667    0.00000     Inf       NA
+## SIPI            0.03749    0.00000     Inf       NA
+## RRS             0.04190    0.00000     Inf       NA
+## ERQ             0.00867    0.00000     Inf       NA
+## AIM             0.00288    0.00000     Inf       NA
+## PANAS_Positive -0.10154    0.00000    -Inf       NA
+## PANAS_Negative -0.02223    0.00000    -Inf       NA
+## 
+## Robust residual standard error: 1e+20 
+## Convergence in 2 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 1 1 1 1 1 1 1 1 1
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
 ```
 
-```
-##                Length Class      Mode   
-## coefficients    9     -none-     numeric
-## scale           1     -none-     numeric
-## k.iter          1     -none-     numeric
-## converged       1     -none-     logical
-## fitted.values   9     -none-     numeric
-## residuals       9     -none-     numeric
-## weights         9     -none-     numeric
-## control        26     -none-     list   
-## qr              4     qr         list   
-## rank            1     -none-     numeric
-## cov             1     -none-     logical
-## degree.freedom  1     -none-     logical
-## df              1     -none-     logical
-## contrasts       1     -none-     list   
-## xlevels         1     -none-     list   
-## call            4     -none-     call   
-## terms           3     terms      call   
-## model           9     data.frame list   
-## x              81     -none-     numeric
-```
-
-```
-## Error: $ operator is invalid for atomic vectors
-```
+![plot of chunk multiple-totals-correlation-panas](figure/multiple-totals-correlation-panas.png) 
 
 
 #### Single Regressions
@@ -576,43 +619,8 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## 
-## Call:
-## lmrob(formula = f, data = df, maxit.scale = 500)
-## 
-## Weighted Residuals:
-## [1]  0.04949  0.05573  0.02983 -0.04655  0.14082 -0.02125 -0.00756 -0.00144
-## [9] -0.21736
-## 
-## Coefficients:
-##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)    -0.33857    0.15731   -2.15    0.120  
-## age             0.00737    0.00204    3.61    0.037 *
-## sexM           -0.01703    0.07120   -0.24    0.826  
-## RRS_Brooding   -0.02697    0.01205   -2.24    0.111  
-## RRS_Reflection -0.02908    0.00922   -3.15    0.051 .
-## RRS_Depression  0.02163    0.00573    3.78    0.033 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-## 
-## Robust residual standard error: 0.187 
-## Convergence in 7 IRWLS iterations
-## 
-## Robustness weights: 
-## [1] 0.994 0.992 0.998 0.994 0.949 0.999 1.000 1.000 0.880
-## Algorithmic parameters: 
-## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
-##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
-##      nResample         max.it       best.r.s       k.fast.s          k.max 
-##            500             50              2              1            200 
-##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
-##            500              0           1000              0           2000 
-##           psi   subsampling        method           cov 
-##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
-## seed : int(0)
+## Error: dgels: weighted design matrix not of full rank (column 3). Exiting.
 ```
-
-![plot of chunk multiple-rrs-correlation](figure/multiple-rrs-correlation.png) 
 
 
 #### Single Regressions
