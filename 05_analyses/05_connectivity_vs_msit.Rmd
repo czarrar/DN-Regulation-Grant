@@ -1,0 +1,64 @@
+# Associations between MSIT-DMN and Rest-DMN-Kurtosis
+
+Note that actual code is loaded from a different file.
+
+```{r external-code, cache=FALSE}
+read_chunk('05_connectivity_vs_msit.R')
+```
+
+## Overview
+
+Only the connectivity between DN and Right Frontoparietal is marginally related to MSIT-DN correlation. 
+
+## Setup
+
+```{r general-setup, message=FALSE, results='hide'}
+```
+
+```{r network-setup}
+```
+
+Read in subject information.
+
+```{r subject-info}
+```
+
+Get the incoherent > coherent predicted task signal together.
+
+```{r task-waver, fig.width=8, fig.height=4}
+```
+
+Read in the time-series data.
+
+```{r msit-ts}
+```
+
+## Pre-Analysis Calculations
+
+Get the correlation (Fischer Z transformed) between the MSIT predicted task signal and the DMN signal. For each subject, collapse this measure across scans/runs (i.e., get the mean). Note that this time, I have flipped the MSIT task to DMN signal correlation so it is generally negative.
+
+```{r msit-dmn-correlation, fig.width=8, fig.height=4}
+```
+
+Get the connectivity between the DN and TP networks at rest. For each subject, collapse this measure across scans/runs (i.e., get the mean).
+
+```{r connectivity}
+```
+
+```{r combine}
+```
+
+## Plot and Significate
+
+```{r functions}
+```
+
+Ugh, not significant.
+
+```{r signif}
+```
+
+Plot doesn't look good either.
+
+```{r plots, fig.width=12, fig.height=4}
+```
