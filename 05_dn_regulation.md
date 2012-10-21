@@ -29,7 +29,8 @@ library(bcp)
 library(RColorBrewer)
 library(robustbase)
 library(MASS)
-basedir <- "/home2/data/Projects/CCD"
+basedir <- dirname(dirname(getwd()))
+datadir <- file.path(basedir, "scripts/data")
 oldtheme <- theme_set(theme_bw())
 ```
 
@@ -47,7 +48,7 @@ tps <- 8:10
 
 
 ```r
-fname <- file.path(basedir, "behavior/ccd_totals.csv")
+fname <- file.path(datadir, "ccd_totals.csv")
 phenos <- read.csv(fname, row.names = 1)
 phenos <- phenos[14:27, ][-c(8, 13), ]  # CCD014 ... CCD027 (NO CCD021 and CCD026)
 ```
@@ -60,12 +61,14 @@ phenos <- phenos[14:27, ][-c(8, 13), ]  # CCD014 ... CCD027 (NO CCD021 and CCD02
 
 ```r
 # Read in time-series
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D")))  # (NO CCD021 and CCD026)
-tcs <- laply(fnames, function(f) as.matrix(read.table(f)))
-tcs <- tcs[12:23, , ]  # CCD014 ... CCD027
+load(file.path(datadir, "ccb+ccd_time_series_all.rda"))
+splitter <- attr(tss, "split_labels")
+splitter$index <- 1:nrow(splitter)
+sub_splitter <- subset(splitter, subject %in% toupper(phenos$study_id))
+tcs <- laply(tss[sub_splitter$index], function(x) x)
 # Calculate correlations
 rest_conn_all <- aaply(tcs, 1, cor)
-rest_conn <- rest_conn_all[, tps, 1]  # only look at DMN connectivity with TP networks
+rest_conn <- rest_conn_all[, tps, dmn]  # only look at DMN connectivity with TP networks
 colnames(rest_conn) <- network_names[tps]
 names(dimnames(rest_conn)) <- c("subjects", "networks")
 # Mean
@@ -74,7 +77,7 @@ colMeans(rest_conn)
 
 ```
 ##    executive.control right.frontoparietal  left.frontoparietal 
-##              0.21813              0.03733              0.04133
+##              0.18751              0.02635             -0.06981
 ```
 
 
@@ -85,7 +88,7 @@ This is the group average connectivity with the DMN.
 
 ```r
 # only for DMN
-rest_kurtosis <- aaply(tcs[, , 4], 1, kurtosis)
+rest_kurtosis <- aaply(tcs[, , dmn], 1, kurtosis)
 # distribution
 ggplot(data.frame(x = rest_kurtosis), aes(x = x)) + geom_histogram(binwidth = 0.2) + 
     geom_hline(aes(yintercept = 0)) + labs(x = "Kurtosis")
@@ -101,7 +104,7 @@ As another measure of stability of the DMN time-series, I looked at it's autocor
 
 ```r
 # only for DMN
-rest_lags <- aaply(tcs[, , 4], 1, function(vec) {
+rest_lags <- aaply(tcs[, , dmn], 1, function(vec) {
     acors <- acf(vec, plot = F)
     lags <- c(acors$lag)
     acors <- c(acors$acf)
@@ -125,7 +128,7 @@ As another measure of the stability of the DMN time-series and to capture change
 
 
 ```r
-rest_changes <- aaply(tcs[, , 4], 1, function(vec) {
+rest_changes <- aaply(tcs[, , dmn], 1, function(vec) {
     bcp.0 <- bcp(vec)
     sum(bcp.0$posterior.prob > 0.5, na.rm = T)
 })
@@ -138,7 +141,7 @@ ggplot(data.frame(x = rest_changes), aes(x = x)) + geom_histogram(binwidth = 5) 
 
 ```r
 # sample subject
-plot(bcp(tcs[1, , 4]))
+plot(bcp(tcs[1, , dmn]))
 ```
 
 ![plot of chunk changepoints](figure/changepoints2.png) 
@@ -148,7 +151,7 @@ plot(bcp(tcs[1, , 4]))
 
 
 ```r
-fname <- file.path(basedir, "behavior/CCD_full_dframe.csv")
+fname <- file.path(datadir, "CCD_full_dframe.csv")
 preds <- read.csv(fname)
 preds <- preds[-c(23, 24), c(2, 6, 10)]  # no CCD026; only look at DMN
 colnames(preds)[3] <- "R"
@@ -361,23 +364,22 @@ tdf <- wrap_lmrob(prediction ~ nchanges, df)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.1456 -0.0941  0.0213  0.0828  0.1522 
+##      Min       1Q   Median       3Q      Max 
+## -0.16257 -0.08202  0.00443  0.06347  0.18069 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  0.49804    0.14356    3.47    0.006 **
-## nchanges    -0.01516    0.00932   -1.63    0.135   
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   0.5238     0.1716    3.05    0.012 *
+## nchanges     -0.0176     0.0115   -1.52    0.159  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.137 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 0.102 
+## Convergence in 15 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  one weight is ~= 1. The remaining 11 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.891   0.925   0.955   0.949   0.976   0.994 
+##   0.737   0.916   0.937   0.921   0.976   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -429,59 +431,58 @@ tmpdf <- ddply(tmpdf, .(network), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.12079 -0.04238  0.00354  0.03321  0.25511 
+##     Min      1Q  Median      3Q     Max 
+## -0.1910 -0.0488 -0.0264  0.0683  0.1818 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   0.43280    0.11061    3.91   0.0045 **
-## Age          -0.01228    0.00557   -2.20   0.0585 . 
-## SexMale       0.04111    0.04767    0.86   0.4136   
-## connectivity  0.50133    0.11181    4.48   0.0020 **
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   0.26856    0.32996    0.81    0.439  
+## Age           0.00418    0.01641    0.25    0.805  
+## SexMale       0.08792    0.15409    0.57    0.584  
+## connectivity -0.62993    0.32440   -1.94    0.088 .
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.104 
+## Robust residual standard error: 0.0791 
+## Convergence in 21 IRWLS iterations
+## 
+## Robustness weights: 
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.540   0.901   0.956   0.887   0.987   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10799 -0.06937 -0.00653  0.06526  0.18125 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)   0.53055    0.14566    3.64   0.0066 **
+## Age          -0.01302    0.00571   -2.28   0.0521 . 
+## SexMale       0.05229    0.05109    1.02   0.3360   
+## connectivity -0.48495    0.17892   -2.71   0.0266 * 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.117 
 ## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  one weight is ~= 1. The remaining 11 ones are summarized as
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.525   0.951   0.980   0.929   0.994   0.998 
-## Algorithmic parameters: 
-## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
-##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
-##      nResample         max.it       best.r.s       k.fast.s          k.max 
-##            500             50              2              1            200 
-##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
-##            500              0           1000              0           2000 
-##           psi   subsampling        method           cov 
-##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
-## seed : int(0) 
-## 
-## Call:
-## lmrob(formula = f, data = df, maxit.scale = 500)
-## 
-## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.1076 -0.0415 -0.0100  0.0445  0.2408 
-## 
-## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   0.47062    0.10844    4.34   0.0025 **
-## Age          -0.01014    0.00486   -2.09   0.0703 . 
-## SexMale       0.04809    0.03983    1.21   0.2619   
-## connectivity  0.48995    0.10198    4.80   0.0013 **
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-## 
-## Robust residual standard error: 0.0903 
-## Convergence in 10 IRWLS iterations
-## 
-## Robustness weights: 
-##  one weight is ~= 1. The remaining 11 ones are summarized as
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.457   0.962   0.974   0.922   0.983   0.999 
+##  3 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     5     6     8    10    11 
+## 0.793 0.973 0.975 0.943 0.961 0.878 0.950 0.984 0.924 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -498,24 +499,24 @@ tmpdf <- ddply(tmpdf, .(network), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.10067 -0.03763 -0.00523  0.03764  0.27286 
+## -0.08384 -0.06453 -0.00897  0.03694  0.31194 
 ## 
 ## Coefficients:
-##               Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   0.254971   0.085688    2.98   0.0177 * 
-## Age          -0.000423   0.003008   -0.14   0.8917   
-## SexMale      -0.016000   0.067249   -0.24   0.8179   
-## connectivity  0.507529   0.131240    3.87   0.0048 **
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   0.11672    0.15119    0.77    0.462  
+## Age           0.00488    0.00542    0.90    0.394  
+## SexMale       0.11976    0.07294    1.64    0.139  
+## connectivity -0.44168    0.18803   -2.35    0.047 *
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0838 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 0.111 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 9 ones are
-##     1     3     4     5     6     7     8    11    12 
-## 0.267 0.966 0.962 0.988 0.986 0.980 0.873 0.982 0.775 
+##  one weight is ~= 1. The remaining 11 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.411   0.947   0.961   0.914   0.986   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -558,9 +559,9 @@ adonis(d ~ Age + Sex + prediction, df, permutations = 4999)
 ## Terms added sequentially (first to last)
 ## 
 ##            Df SumsOfSqs MeanSqs F.Model    R2 Pr(>F)    
-## Age         1     0.386   0.386    3.45 0.136 0.0390 *  
-## Sex         1     0.922   0.922    8.24 0.325 0.0002 ***
-## prediction  1     0.634   0.634    5.66 0.223 0.0024 ** 
+## Age         1     0.386   0.386    3.45 0.136 0.0414 *  
+## Sex         1     0.922   0.922    8.24 0.325 0.0004 ***
+## prediction  1     0.634   0.634    5.66 0.223 0.0054 ** 
 ## Residuals   8     0.895   0.112         0.316           
 ## Total      11     2.837                 1.000           
 ## ---
@@ -580,12 +581,14 @@ adonis(d ~ Age + Sex + prediction, df, permutations = 4999)
 ## 
 ## Terms added sequentially (first to last)
 ## 
-##            Df SumsOfSqs MeanSqs F.Model    R2 Pr(>F)
-## Age         1      0.48   0.480   1.073 0.103   0.38
-## Sex         1      0.40   0.404   0.903 0.086   0.47
-## prediction  1      0.22   0.221   0.493 0.047   0.58
-## Residuals   8      3.58   0.447         0.764       
-## Total      11      4.68                 1.000
+##            Df SumsOfSqs MeanSqs F.Model     R2 Pr(>F)  
+## Age         1      1.68   1.684    4.06  0.308  0.064 .
+## Sex         1      0.59   0.594    1.43  0.109  0.261  
+## prediction  1     -0.13  -0.130   -0.31 -0.024  0.950  
+## Residuals   8      3.31   0.414          0.607         
+## Total      11      5.46                  1.000         
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 
@@ -611,7 +614,7 @@ brainbehavior.multiple <- function(names, with_age_sex = TRUE) {
     
     # Get best fit line
     model <- lmrob(prediction ~ behavior + measure, bb.df, maxit.scale = 500)
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), length = 20), 
             measure = rep(sdf$measure[1], 20))
     })
@@ -652,7 +655,7 @@ brainbehavior.single <- function(names, with_age_sex = TRUE) {
     
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         model <- lmrob(prediction ~ behavior, sdf, maxit.scale = 500)
         sgrid <- data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), 
             length = 20))
@@ -689,10 +692,6 @@ Here, only RRS is significant and there are no outliers.
 ```r
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
 brainbehavior.multiple(names)
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
 ```
 
 ```
@@ -1623,7 +1622,7 @@ brainbehavior.multiple <- function(names, with_age_sex = TRUE) {
     
     # Get best fit line
     model <- lmrob(prediction ~ behavior + measure, bb.df, maxit.scale = 500)
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), length = 20), 
             measure = rep(sdf$measure[1], 20))
     })
@@ -1664,7 +1663,7 @@ brainbehavior.single <- function(names, with_age_sex = TRUE) {
     
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         model <- lmrob(prediction ~ behavior, sdf, maxit.scale = 500)
         sgrid <- data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), 
             length = 20))
@@ -1708,26 +1707,26 @@ brainbehavior.multiple(names, with_age_sex = FALSE)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.0950 -0.0401 -0.0135  0.0374  0.1269 
+## -0.0954 -0.0406 -0.0142  0.0369  0.1255 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  0.258379   0.223602    1.16   0.2918   
-## SIPI        -0.000814   0.001735   -0.47   0.6555   
-## RRS          0.009848   0.002555    3.85   0.0084 **
-## ERQ         -0.009334   0.004107   -2.27   0.0635 . 
-## BDI          0.000703   0.006328    0.11   0.9152   
-## AIM          0.000873   0.001495    0.58   0.5803   
+## (Intercept)  0.253335   0.233538    1.08   0.3197   
+## SIPI        -0.000843   0.001500   -0.56   0.5943   
+## RRS          0.009815   0.002457    4.00   0.0072 **
+## ERQ         -0.009272   0.003912   -2.37   0.0555 . 
+## BDI          0.000570   0.006169    0.09   0.9295   
+## AIM          0.000934   0.001400    0.67   0.5294   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0799 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 0.0921 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  one weight is ~= 1. The remaining 11 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.783   0.920   0.966   0.940   0.986   0.993 
+##   0.838   0.940   0.973   0.955   0.989   0.994 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2573,5 +2572,899 @@ brainbehavior.single(names, with_age_sex = FALSE)
 ```
 
 ![plot of chunk single-panas-prediction-just-say-no](figure/single-panas-prediction-just-say-no.png) 
+
+
+
+### with Phenotypic Measures but NO Age and Sex and NO Subject 1 (CCD014)
+
+#### Total Scale Scores (with BDI, without PANAS)
+
+##### Multiple Regression
+
+
+```r
+df <- df[-1, ]
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##  [1] -0.01450  0.01976 -0.03416  0.04639 -0.01383  0.00474  0.00552
+##  [8] -0.01536 -0.04494 -0.04028  0.11906
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.164692   0.186544   -0.88    0.418  
+## SIPI         0.002398   0.000965    2.48    0.056 .
+## RRS          0.005155   0.001579    3.27    0.022 *
+## ERQ         -0.004931   0.002185   -2.26    0.074 .
+## BDI          0.002065   0.003003    0.69    0.522  
+## AIM          0.000613   0.001684    0.36    0.731  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.064 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     5     8     9    10    11 
+## 0.995 0.991 0.974 0.953 0.996 0.995 0.956 0.964 0.710 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-totals-prediction-just-say-no-no1](figure/multiple-totals-prediction-just-say-no-no1.png) 
+
+
+##### Single Regressions
+
+
+```r
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.single(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Running regression for SIPI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.07939 -0.03538 -0.00381  0.02399  0.11071 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -0.413710   0.088351   -4.68   0.0011 ** 
+## SIPI         0.004879   0.000738    6.61  9.8e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0666 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     4     5     6     8     9    10    11 
+## 0.994 0.823 0.971 0.995 0.875 0.998 0.918 0.941 0.764 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.169331 -0.019000  0.000321  0.028699  0.110472 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 0.013061   0.061039    0.21  0.83534    
+## RRS         0.005758   0.000974    5.91  0.00023 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0579 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     3     4     5     6     7     9    10    11 
+## 0.372 0.851 0.947 0.996 0.994 0.945 0.995 0.986 0.696 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.22885 -0.06716  0.00741  0.05392  0.12948 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.11176    0.39945    0.28     0.79
+## ERQ          0.00315    0.00938    0.34     0.74
+## 
+## Robust residual standard error: 0.0952 
+## Convergence in 21 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     5     6     8    10    11 
+## 0.542 0.838 0.933 0.995 0.976 0.947 0.966 0.962 0.909 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for BDI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.19449 -0.05459  0.00932  0.04835  0.17069 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)  0.21813    0.05638    3.87   0.0038 **
+## BDI          0.00648    0.00690    0.94   0.3724   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.104 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     5     6     7     8     9    10    11 
+## 0.706 0.769 0.952 0.993 0.988 0.991 0.961 0.997 0.958 0.914 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for AIM 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10054 -0.02125  0.00885  0.04325  0.24625 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -0.66289    0.12706   -5.22  0.00055 ***
+## AIM          0.00620    0.00104    5.99  0.00020 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0456 
+## Convergence in 12 IRWLS iterations
+## 
+## Robustness weights: 
+##  observation 4 is an outlier with |weight| = 0 ( < 0.0091); 
+##  The remaining 10 ones are
+##     1     2     3     5     6     7     8     9    10    11 
+## 0.998 0.878 0.999 0.944 0.993 0.841 0.890 0.997 0.606 0.945 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk single-totals-prediction-just-say-no-no1](figure/single-totals-prediction-just-say-no-no1.png) 
+
+
+#### Total Scale Scores (with PANAS, without BDI)
+
+##### Multiple Regression
+
+
+```r
+names <- c("SIPI", "RRS", "ERQ", "AIM", "PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##  [1]  0.00112 -0.00969  0.00251 -0.00641 -0.01238  0.32223  0.01477
+##  [8]  0.01356  0.01354 -0.04191  0.02335
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)     0.75111    0.17829    4.21   0.0136 * 
+## SIPI           -0.00534    0.00159   -3.35   0.0285 * 
+## RRS             0.00525    0.00105    5.01   0.0075 **
+## ERQ            -0.01277    0.00175   -7.29   0.0019 **
+## AIM             0.00732    0.00105    6.95   0.0022 **
+## PANAS_Positive -0.01823    0.00272   -6.71   0.0026 **
+## PANAS_Negative  0.01708    0.00367    4.65   0.0097 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.057 
+## Convergence in 6 IRWLS iterations
+## 
+## Robustness weights: 
+##  observation 6 is an outlier with |weight| = 0 ( < 0.0091); 
+##  2 weights are ~= 1. The remaining 8 ones are
+##     2     4     5     7     8     9    10    11 
+## 0.997 0.999 0.996 0.994 0.995 0.995 0.951 0.985 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-totals-prediction-no-bdi-just-say-no-no1](figure/multiple-totals-prediction-no-bdi-just-say-no-no1.png) 
+
+
+##### Single Regressions
+
+Of course there is no point in re-running this here.
+
+#### RRS SubScales
+
+##### Multiple Regression
+
+
+```r
+names <- c("RRS_Brooding", "RRS_Reflection", "RRS_Depression")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.148162 -0.021230  0.000277  0.024073  0.123525 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)
+## (Intercept)    0.003942   0.065934    0.06     0.95
+## RRS_Brooding   0.000708   0.007883    0.09     0.93
+## RRS_Reflection 0.003769   0.006331    0.60     0.57
+## RRS_Depression 0.009126   0.007316    1.25     0.25
+## 
+## Robust residual standard error: 0.0832 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  4 weights are ~= 1. The remaining 7 ones are
+##     1     3     4     5     7    10    11 
+## 0.732 0.938 0.986 0.997 0.948 0.982 0.809 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-rrs-prediction-just-say-no-no1](figure/multiple-rrs-prediction-just-say-no-no1.png) 
+
+
+##### Single Regressions
+
+
+```r
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+brainbehavior.single(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Running regression for RRS_Brooding 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.1886 -0.0446 -0.0080  0.0692  0.1143 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   0.06170    0.07626    0.81    0.439  
+## RRS_Brooding  0.02104    0.00758    2.78    0.022 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0984 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     5     6     8    10    11 
+## 0.693 0.950 0.964 0.960 0.941 0.975 0.987 0.995 0.881 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Depression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -1.37e-01 -3.07e-02  3.98e-05  2.60e-02  1.32e-01 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)     0.01091    0.08068    0.14   0.8954   
+## RRS_Depression  0.01110    0.00273    4.07   0.0028 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0668 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 8 ones are
+##     1     3     4     5     7     9    10    11 
+## 0.653 0.916 0.991 0.980 0.916 0.998 0.932 0.674 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Reflection 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.20339 -0.02722  0.00158  0.04446  0.08582 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)      0.1024     0.0340    3.01  0.01474 *  
+## RRS_Reflection   0.0136     0.0026    5.24  0.00053 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0755 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     4     5     6     7     8     9    11 
+## 0.448 0.965 0.852 0.972 0.996 0.990 0.994 0.931 0.987 0.886 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk single-rrs-prediction-just-say-no-no1](figure/single-rrs-prediction-just-say-no-no1.png) 
+
+
+#### SIPI SubScales
+
+##### Multiple Regression
+
+
+```r
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.070694 -0.041567  0.000359  0.019873  0.115726 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.37332    0.16970   -2.20    0.064 .
+## SIPI_PAC     0.00477    0.00230    2.07    0.077 .
+## SIPI_GFFD    0.00509    0.00232    2.19    0.064 .
+## SIPI_PCD     0.00414    0.00246    1.68    0.136  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0851 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 8 ones are
+##     1     2     4     5     6     9    10    11 
+## 0.995 0.903 0.987 0.998 0.938 0.946 0.950 0.839 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-sipi-prediction-just-say-no-no1](figure/multiple-sipi-prediction-just-say-no-no1.png) 
+
+
+##### Single Regressions
+
+
+```r
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.single(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Running regression for SIPI_PAC 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.08627 -0.06482  0.00113  0.04182  0.13462 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.03222    0.10314   -0.31    0.762  
+## SIPI_PAC     0.00624    0.00228    2.74    0.023 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0912 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     4     5     6     8     9    10    11 
+## 0.920 0.811 0.998 0.947 0.947 0.985 0.998 0.962 0.939 0.826 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_GFFD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10895 -0.02886 -0.00294  0.03854  0.14352 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)  0.00329    0.08205    0.04    0.969   
+## SIPI_GFFD    0.00729    0.00215    3.39    0.008 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0798 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     4     5     6     7     8     9    10    11 
+## 0.896 0.945 0.935 0.997 0.993 0.999 0.989 0.987 0.838 0.727 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_PCD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.191217 -0.062201  0.000599  0.070198  0.154318 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept) 0.243682   0.180752    1.35     0.21
+## SIPI_PCD    0.000194   0.003080    0.06     0.95
+## 
+## Robust residual standard error: 0.122 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     5     6     7     8    10    11 
+## 0.788 0.859 0.952 0.966 0.980 0.996 0.974 0.973 0.928 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk single-sipi-prediction-just-say-no-no1](figure/single-sipi-prediction-just-say-no-no1.png) 
+
+
+#### ERQ SubScales
+
+##### Multiple Regression
+
+
+```r
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.21690 -0.06680  0.00444  0.05958  0.13794 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)
+## (Intercept)      0.14262    0.50501    0.28     0.78
+## ERQ_Reappraisal  0.00269    0.00881    0.31     0.77
+## ERQ_Suppression  0.00187    0.01910    0.10     0.92
+## 
+## Robust residual standard error: 0.102 
+## Convergence in 24 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     4     5     6     8    10    11 
+## 0.628 0.839 0.942 0.995 0.975 0.955 0.962 0.967 0.919 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-erq-prediction-just-say-no-no1](figure/multiple-erq-prediction-just-say-no-no1.png) 
+
+
+##### Single Regressions
+
+
+```r
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.single(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Running regression for ERQ_Reappraisal 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.199790 -0.066718 -0.000125  0.067319  0.149798 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)      0.19093    0.09001    2.12    0.063 .
+## ERQ_Reappraisal  0.00193    0.00304    0.63    0.542  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.119 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     4     5     6     7     8    10    11 
+## 0.759 0.860 0.958 0.996 0.978 0.968 0.998 0.963 0.974 0.940 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ_Suppression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.18329 -0.06449  0.00224  0.07364  0.15976 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)      0.27260    0.09862    2.76    0.022 *
+## ERQ_Suppression -0.00134    0.00847   -0.16    0.878  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.119 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 9 ones are
+##     1     2     3     5     6     7     8    10    11 
+## 0.795 0.842 0.953 0.964 0.977 0.994 0.966 0.969 0.929 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk single-erq-prediction-just-say-no-no1](figure/single-erq-prediction-just-say-no-no1.png) 
+
+
+#### PANAS SubScales
+
+##### Multiple Regression
+
+
+```r
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.18045 -0.04579  0.00481  0.04488  0.12815 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)     0.39810    0.15835    2.51   0.0361 * 
+## PANAS_Positive -0.00680    0.00341   -1.99   0.0814 . 
+## PANAS_Negative  0.00879    0.00254    3.45   0.0087 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0982 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     4     6     7     8     9    10    11 
+## 0.716 0.851 0.964 0.959 0.998 0.987 0.973 0.992 0.993 0.904 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk multiple-panas-prediction-just-say-no-no1](figure/multiple-panas-prediction-just-say-no-no1.png) 
+
+
+##### Single Regression
+
+
+```r
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.single(names, with_age_sex = FALSE)
+```
+
+```
+## 
+## Running regression for PANAS_Positive 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.20383 -0.05429 -0.00386  0.06845  0.14476 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)     0.37209    0.13904    2.68    0.025 *
+## PANAS_Positive -0.00286    0.00307   -0.93    0.377  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.114 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+##  one weight is ~= 1. The remaining 10 ones are
+##     1     2     3     4     5     6     8     9    10    11 
+## 0.731 0.859 0.969 0.988 0.937 0.990 0.985 0.997 0.964 0.944 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for PANAS_Negative 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.1709 -0.0407 -0.0163  0.0479  0.1516 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)     0.18233    0.06774    2.69    0.025 *
+## PANAS_Negative  0.00464    0.00299    1.55    0.154  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.111 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.796   0.903   0.986   0.942   0.997   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk single-panas-prediction-just-say-no-no1](figure/single-panas-prediction-just-say-no-no1.png) 
 
 

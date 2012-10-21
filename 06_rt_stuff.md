@@ -63,7 +63,6 @@ subinfo$run <- factor(subinfo$run)
 
 ```r
 load(file.path(datadir, "ccb+ccd_rts.rda"))  # rts
-rts <- rts[rts$rt > 200, ]  # remove trials with RT < 200ms
 rts$scan <- factor(rts$scan)
 rts$run <- factor(rts$run)
 ```
@@ -105,6 +104,19 @@ ggplot(tmpdf, aes(time, predicted_signal)) + geom_line() + xlab("Time (secs)") +
 load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
 splitter <- attr(tss, "split_labels")
 splitter$index <- 1:nrow(splitter)
+# only look at time-series for MSIT with associated RT info note: there's
+# proly a better
+splitter <- ddply(splitter, .(study, subject, condition, scan, run), function(x) {
+    if (x$condition == "REST") 
+        return(x)
+    has_any <- any(ddply(rts, .(study, subject, condition, scan, run), function(y) {
+        y <- y[1, ]
+        as.character(x$subject) == as.character(y$subject) & x$scan == y$scan & 
+            x$run == y$run
+    })$V1)
+    if (has_any) 
+        return(x) else return(data.frame())
+})
 ```
 
 
@@ -115,86 +127,16 @@ splitter$index <- 1:nrow(splitter)
 rts_df <- ddply(rts, .(study, subject, condition), function(sdf) {
     c(mean.rt = mean(sdf$rt), cv.rt = sd(sdf$rt)/mean(sdf$rt))
 })
-rts_df
-```
-
-```
-##    study subject  condition mean.rt  cv.rt
-## 1    CCB  CCB002   Coherent   597.0 0.2781
-## 2    CCB  CCB002 Incoherent   887.8 0.2285
-## 3    CCB  CCB003   Coherent   569.0 0.2321
-## 4    CCB  CCB003 Incoherent   889.1 0.1981
-## 5    CCB  CCB004   Coherent   553.9 0.3230
-## 6    CCB  CCB004 Incoherent   811.0 0.1936
-## 7    CCB  CCB005   Coherent   624.3 0.2339
-## 8    CCB  CCB005 Incoherent  1023.3 0.1552
-## 9    CCB  CCB006   Coherent   461.7 0.2103
-## 10   CCB  CCB006 Incoherent   762.5 0.1500
-## 11   CCB  CCB007   Coherent   504.7 0.2768
-## 12   CCB  CCB007 Incoherent   866.4 0.2056
-## 13   CCB  CCB009   Coherent   542.8 0.2448
-## 14   CCB  CCB009 Incoherent   813.0 0.1695
-## 15   CCB  CCB010   Coherent   535.2 0.2376
-## 16   CCB  CCB010 Incoherent   881.8 0.1876
-## 17   CCB  CCB012   Coherent   583.4 0.2305
-## 18   CCB  CCB012 Incoherent  1090.7 0.2054
-## 19   CCB  CCB013   Coherent   622.2 0.2842
-## 20   CCB  CCB013 Incoherent   966.7 0.1851
-## 21   CCB  CCB014   Coherent   623.8 0.2107
-## 22   CCB  CCB014 Incoherent  1022.7 0.2182
-## 23   CCB  CCB015   Coherent   606.5 0.1867
-## 24   CCB  CCB015 Incoherent   948.5 0.1651
-## 25   CCB  CCB016   Coherent   512.9 0.2241
-## 26   CCB  CCB016 Incoherent   833.0 0.1645
-## 27   CCB  CCB017   Coherent   665.4 0.3075
-## 28   CCB  CCB017 Incoherent  1127.2 0.1958
-## 29   CCB  CCB018   Coherent   729.2 0.1572
-## 30   CCB  CCB018 Incoherent  1037.9 0.1906
-## 31   CCB  CCB019   Coherent   571.6 0.2265
-## 32   CCB  CCB019 Incoherent   826.3 0.1839
-## 33   CCB  CCB020   Coherent   590.9 0.2178
-## 34   CCB  CCB020 Incoherent   996.1 0.2041
-## 35   CCB  CCB021   Coherent   627.6 0.3519
-## 36   CCB  CCB021 Incoherent  1098.9 0.2053
-## 37   CCB  CCB022   Coherent   633.3 0.1791
-## 38   CCB  CCB022 Incoherent   950.7 0.1599
-## 39   CCB  CCB025   Coherent   518.9 0.2166
-## 40   CCB  CCB025 Incoherent   854.3 0.1833
-## 41   CCB  CCB026   Coherent   607.4 0.3475
-## 42   CCB  CCB026 Incoherent  1059.6 0.2191
-## 43   CCB  CCB027   Coherent   662.9 0.2103
-## 44   CCB  CCB027 Incoherent   946.8 0.1832
-## 45   CCB  CCB029   Coherent   712.7 0.2396
-## 46   CCB  CCB029 Incoherent  1007.9 0.2001
-## 47   CCB  CCB031   Coherent   592.0 0.3053
-## 48   CCB  CCB031 Incoherent   847.0 0.1671
-## 49   CCB  CCB032   Coherent   690.0 0.2525
-## 50   CCB  CCB032 Incoherent   958.4 0.1899
-## 51   CCB  CCB035   Coherent   677.5 0.3367
-## 52   CCB  CCB035 Incoherent  1205.8 0.1940
-## 53   CCB  CCB037   Coherent   534.4 0.1892
-## 54   CCB  CCB037 Incoherent   912.3 0.2094
-## 55   CCB  CCB038   Coherent   743.2 0.2064
-## 56   CCB  CCB038 Incoherent  1072.7 0.1458
-## 57   CCD  CCD003   Coherent   651.3 0.2851
-## 58   CCD  CCD003 Incoherent  1074.2 0.1978
-## 59   CCD  CCD004   Coherent   636.0 0.2326
-## 60   CCD  CCD004 Incoherent   880.4 0.2473
-## 61   CCD  CCD005   Coherent   530.7 0.2193
-## 62   CCD  CCD005 Incoherent   925.6 0.1419
-## 63   CCD  CCD007   Coherent   866.3 0.3397
-## 64   CCD  CCD007 Incoherent  1260.7 0.1538
-## 65   CCD  CCD008   Coherent   705.9 0.2421
-## 66   CCD  CCD008 Incoherent  1276.2 0.1725
-## 67   CCD  CCD009   Coherent   780.7 0.2145
-## 68   CCD  CCD009 Incoherent  1187.2 0.2133
-## 69   CCD  CCD010   Coherent   735.9 0.2403
-## 70   CCD  CCD010 Incoherent  1088.9 0.1713
-## 71   CCD  CCD011   Coherent   663.6 0.2236
-## 72   CCD  CCD011 Incoherent   992.4 0.1487
-```
-
-```r
+d <- ddply(rts_df, .(study, subject), function(sdf) {
+    coh <- sdf$condition == "Coherent"
+    incoh <- sdf$condition == "Incoherent"
+    data.frame(condition = "Difference", mean.rt = sdf$mean.rt[incoh] - sdf$mean.rt[coh], 
+        cv.rt = sdf$cv.rt[incoh] - sdf$cv.rt[coh])
+})
+rts_df$condition <- factor(rts_df$condition, levels = c("Coherent", "Incoherent", 
+    "Difference"))
+d$condition <- factor(d$condition, levels = c("Coherent", "Incoherent", "Difference"))
+rts_df <- ddply(rbind(rts_df, d), .(study, subject, condition), function(x) x)
 # Plot Mean RTs
 ggplot(rts_df, aes(x = mean.rt)) + geom_histogram(aes(fill = ..count..)) + facet_grid(condition ~ 
     study) + xlab("Mean Reaction Time (msecs)")
@@ -335,20 +277,20 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.35919 -0.10140 -0.00107  0.15472  0.74313 
+## -0.33567 -0.09381 -0.00591  0.11948  0.78517 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.197871   0.589679   -0.34     0.74
-## mean.rt      0.000294   0.000990    0.30     0.77
+## (Intercept)  0.126481   0.466777    0.27     0.79
+## mean.rt     -0.000239   0.000800   -0.30     0.77
 ## 
-## Robust residual standard error: 0.181 
+## Robust residual standard error: 0.186 
 ## Convergence in 27 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  6 weights are ~= 1. The remaining 30 ones are summarized as
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.054   0.864   0.945   0.848   0.978   0.999 
+##  0.0344  0.8840  0.9610  0.8600  0.9800  0.9970 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -367,20 +309,52 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.3340 -0.1004 -0.0117  0.1485  0.7406 
+## -0.3264 -0.1045 -0.0051  0.1361  0.7433 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.192664   0.309005   -0.62     0.54
-## mean.rt      0.000178   0.000328    0.54     0.59
+## (Intercept)  0.118377   0.235598     0.5     0.62
+## mean.rt     -0.000142   0.000237    -0.6     0.55
 ## 
-## Robust residual standard error: 0.177 
-## Convergence in 16 IRWLS iterations
+## Robust residual standard error: 0.18 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  7 weights are ~= 1. The remaining 29 ones are summarized as
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0409  0.8360  0.9370  0.8380  0.9710  0.9970 
+##  0.0513  0.8980  0.9490  0.8600  0.9790  0.9980 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.3355 -0.1022 -0.0127  0.1492  0.7096 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.033639   0.167064    0.20     0.84
+## mean.rt     -0.000147   0.000391   -0.38     0.71
+## 
+## Robust residual standard error: 0.178 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.075   0.892   0.938   0.857   0.981   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -394,7 +368,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ```
 
 ```r
-tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 3)
 grid <- ddply(df_kurtosis, .(condition), get_grid, kurtosis ~ mean.rt, "kurtosis", 
     "mean.rt")
 # Plot
@@ -432,21 +406,21 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.34584 -0.09447 -0.00341  0.13904  0.72347 
+##     Min      1Q  Median      3Q     Max 
+## -0.3512 -0.0956 -0.0142  0.1370  0.7139 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)   -0.112      0.164   -0.68     0.50
-## cv.rt          0.379      0.657    0.58     0.57
+## (Intercept)   -0.054      0.218   -0.25     0.81
+## cv.rt          0.161      0.979    0.16     0.87
 ## 
-## Robust residual standard error: 0.178 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 0.185 
+## Convergence in 18 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##  5 weights are ~= 1. The remaining 31 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0622  0.8740  0.9500  0.8540  0.9790  0.9980 
+##   0.106   0.888   0.947   0.857   0.980   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -464,21 +438,53 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.31597 -0.10225 -0.00843  0.15783  0.70523 
+##     Min      1Q  Median      3Q     Max 
+## -0.3559 -0.0922 -0.0140  0.1310  0.7161 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)   0.0802     0.3861    0.21     0.84
-## cv.rt        -0.5426     2.0244   -0.27     0.79
+## (Intercept)  -0.0635     0.1942   -0.33     0.75
+## cv.rt         0.2644     1.1904    0.22     0.83
 ## 
-## Robust residual standard error: 0.174 
-## Convergence in 16 IRWLS iterations
+## Robust residual standard error: 0.186 
+## Convergence in 14 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0647  0.8860  0.9390  0.8530  0.9740  0.9980 
+##   0.104   0.884   0.952   0.861   0.985   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.3520 -0.0963 -0.0151  0.1389  0.7129 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  -0.0194     0.0596   -0.33     0.75
+## cv.rt        -0.0443     0.8481   -0.05     0.96
+## 
+## Robust residual standard error: 0.185 
+## Convergence in 15 IRWLS iterations
+## 
+## Robustness weights: 
+##  5 weights are ~= 1. The remaining 31 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.106   0.886   0.947   0.856   0.980   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -492,7 +498,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ```
 
 ```r
-tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 3)
 grid <- ddply(df_kurtosis, .(condition), get_grid, kurtosis ~ cv.rt, "kurtosis", 
     "cv.rt")
 # Plot
@@ -535,23 +541,21 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.39034 -0.09888 -0.00482  0.13271  0.57281 
+##     Min      1Q  Median      3Q     Max 
+## -0.3973 -0.1138 -0.0132  0.1211  0.5610 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) -0.545436   0.276068   -1.98    0.056 .
-## mean.rt      0.000938   0.000445    2.11    0.042 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.425401   0.282226   -1.51     0.14
+## mean.rt      0.000758   0.000471    1.61     0.12
 ## 
-## Robust residual standard error: 0.179 
-## Convergence in 11 IRWLS iterations
+## Robust residual standard error: 0.191 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  one weight is ~= 1. The remaining 35 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.285   0.882   0.962   0.905   0.983   0.998 
+##   0.369   0.896   0.967   0.912   0.981   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -570,22 +574,54 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.4599 -0.1024 -0.0186  0.1158  0.5178 
+## -0.4536 -0.1026 -0.0105  0.1132  0.5304 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) -0.555856   0.212455   -2.62    0.013 *
-## mean.rt      0.000609   0.000223    2.73    0.010 *
+## (Intercept) -0.477731   0.230158   -2.08    0.046 *
+## mean.rt      0.000532   0.000240    2.21    0.034 *
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.185 
+## Robust residual standard error: 0.181 
 ## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.415   0.909   0.965   0.908   0.977   0.999 
+##   0.372   0.909   0.965   0.901   0.979   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Executive Control during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.44063 -0.11871  0.00545  0.11160  0.51108 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.159200   0.169656   -0.94     0.35
+## mean.rt      0.000536   0.000432    1.24     0.22
+## 
+## Robust residual standard error: 0.175 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.372   0.875   0.956   0.888   0.981   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -604,20 +640,20 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.36453 -0.07505 -0.00343  0.11918  0.49188 
+## -0.35010 -0.07783 -0.00482  0.11650  0.49383 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.190404   0.165806   -1.15     0.26
-## mean.rt      0.000325   0.000282    1.15     0.26
+## (Intercept) -0.198648   0.150915   -1.32     0.20
+## mean.rt      0.000343   0.000258    1.33     0.19
 ## 
-## Robust residual standard error: 0.166 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.169 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  4 weights are ~= 1. The remaining 32 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.363   0.852   0.949   0.897   0.989   0.998 
+##   0.376   0.856   0.952   0.901   0.989   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -635,21 +671,53 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.3314 -0.0870 -0.0143  0.1108  0.5074 
+##      Min       1Q   Median       3Q      Max 
+## -0.35183 -0.07639 -0.00766  0.11743  0.50888 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  2.33e-02   2.46e-01    0.09     0.93
-## mean.rt     -1.37e-05   2.58e-04   -0.05     0.96
+## (Intercept) -6.93e-02   2.08e-01   -0.33     0.74
+## mean.rt      8.23e-05   2.25e-04    0.37     0.72
 ## 
 ## Robust residual standard error: 0.173 
-## Convergence in 13 IRWLS iterations
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  6 weights are ~= 1. The remaining 30 ones are summarized as
+##  5 weights are ~= 1. The remaining 31 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.370   0.856   0.938   0.895   0.986   0.997 
+##   0.365   0.855   0.940   0.899   0.986   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Left Frontoparietal during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.33686 -0.09087 -0.00208  0.10638  0.49308 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.091355   0.152066    0.60     0.55
+## mean.rt     -0.000229   0.000413   -0.55     0.58
+## 
+## Robust residual standard error: 0.169 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+##  5 weights are ~= 1. The remaining 31 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.375   0.861   0.928   0.896   0.989   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -668,20 +736,22 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.34267 -0.09164  0.00384  0.09981  0.22907 
+## -0.36542 -0.07421  0.00675  0.08983  0.23152 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.336540   0.223611   -1.51     0.14
-## mean.rt      0.000503   0.000369    1.36     0.18
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.427027   0.191304   -2.23    0.032 *
+## mean.rt      0.000658   0.000315    2.09    0.044 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.158 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 0.153 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.616   0.859   0.957   0.912   0.991   0.999 
+##   0.548   0.857   0.957   0.914   0.987   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -699,21 +769,55 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.3080 -0.0829 -0.0145  0.0955  0.2784 
+##      Min       1Q   Median       3Q      Max 
+## -0.31265 -0.08650 -0.00386  0.08739  0.27470 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.259970   0.220495   -1.18     0.25
-## mean.rt      0.000239   0.000230    1.04     0.31
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.374727   0.192206   -1.95    0.060 .
+## mean.rt      0.000361   0.000203    1.78    0.084 .
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.16 
+## Robust residual standard error: 0.151 
 ## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  2 weights are ~= 1. The remaining 34 ones are summarized as
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.691   0.856   0.966   0.918   0.992   0.999 
+##   0.647   0.857   0.950   0.906   0.987   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Right Frontoparietal during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.3229 -0.0997 -0.0114  0.0963  0.3653 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.093952   0.111310   -0.84     0.40
+## mean.rt      0.000188   0.000293    0.64     0.53
+## 
+## Robust residual standard error: 0.16 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.581   0.859   0.959   0.910   0.988   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -768,20 +872,20 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.3117 -0.1355 -0.0203  0.0946  0.5183 
+## -0.2911 -0.1380 -0.0147  0.1281  0.6044 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)    0.199      0.188    1.05     0.30
-## cv.rt         -0.665      0.800   -0.83     0.41
+## (Intercept)    0.282      0.261    1.08     0.29
+## cv.rt         -1.073      1.194   -0.90     0.38
 ## 
-## Robust residual standard error: 0.205 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 0.198 
+## Convergence in 19 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  one weight is ~= 1. The remaining 35 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.501   0.899   0.962   0.918   0.987   0.998 
+##   0.330   0.901   0.956   0.913   0.991   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -799,21 +903,55 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -0.386 -0.142  0.016  0.105  0.505 
+##     Min      1Q  Median      3Q     Max 
+## -0.3886 -0.1397  0.0174  0.1081  0.5118 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  -0.0205     0.4562   -0.05     0.96
-## cv.rt         0.2887     2.2650    0.13     0.90
+## (Intercept)  -0.0431     0.5234   -0.08     0.93
+## cv.rt         0.4120     2.7220    0.15     0.88
 ## 
-## Robust residual standard error: 0.184 
-## Convergence in 21 IRWLS iterations
+## Robust residual standard error: 0.172 
+## Convergence in 24 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  one weight is ~= 1. The remaining 35 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.433   0.893   0.947   0.898   0.982   0.998 
+##   0.355   0.872   0.942   0.884   0.980   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Executive Control during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.23616 -0.13050 -0.00019  0.12285  0.62966 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   0.0910     0.0382    2.38    0.023 *
+## cv.rt         1.3782     1.1781    1.17    0.250  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.169 
+## Convergence in 20 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.137   0.891   0.946   0.881   0.988   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -832,20 +970,20 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.3351 -0.0826 -0.0201  0.1100  0.5093 
+## -0.3295 -0.0847 -0.0201  0.1112  0.5138 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  -0.0135     0.1130   -0.12     0.91
-## cv.rt         0.0949     0.4601    0.21     0.84
+## (Intercept)  -0.0371     0.1265   -0.29     0.77
+## cv.rt         0.1986     0.5318    0.37     0.71
 ## 
-## Robust residual standard error: 0.173 
+## Robust residual standard error: 0.17 
 ## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.366   0.862   0.952   0.905   0.988   0.999 
+##   0.341   0.863   0.954   0.905   0.989   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -864,23 +1002,54 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.28827 -0.05916 -0.00215  0.08605  0.61730 
+## -0.28801 -0.06907 -0.00931  0.08560  0.63536 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   -0.493      0.245   -2.01    0.052 .
-## cv.rt          2.641      1.263    2.09    0.044 *
+## (Intercept)   -0.515      0.206   -2.50    0.017 *
+## cv.rt          2.863      1.112    2.57    0.015 *
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.133 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 0.148 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  observation 36 is an outlier with |weight| <= 0.00049 ( < 0.0028); 
-##  3 weights are ~= 1. The remaining 32 ones are summarized as
+##  one weight is ~= 1. The remaining 35 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.480   0.832   0.964   0.888   0.983   0.997 
+##  0.0272  0.8630  0.9700  0.8940  0.9870  0.9990 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Left Frontoparietal during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.32942 -0.08946 -0.00352  0.10962  0.51392 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)   0.0314     0.0367    0.86     0.40
+## cv.rt         0.4355     0.6313    0.69     0.49
+## 
+## Robust residual standard error: 0.162 
+## Convergence in 12 IRWLS iterations
+## 
+## Robustness weights: 
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.291   0.853   0.948   0.890   0.994   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -898,23 +1067,23 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -0.292910 -0.098565 -0.000617  0.128278  0.260228 
+##      Min       1Q   Median       3Q      Max 
+## -0.27615 -0.08117  0.00672  0.10032  0.27715 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   -0.260      0.144   -1.80     0.08 .
-## cv.rt          0.942      0.561    1.68     0.10  
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)   -0.363      0.123   -2.96   0.0056 **
+## cv.rt          1.427      0.480    2.98   0.0054 **
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.16 
+## Robust residual standard error: 0.148 
 ## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##  7 weights are ~= 1. The remaining 29 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.718   0.862   0.951   0.917   0.980   0.998 
+##   0.707   0.873   0.925   0.905   0.981   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -932,21 +1101,57 @@ tmpdf <- ddply(df_connectivity, .(network, condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.28718 -0.08234 -0.00923  0.09603  0.40846 
+##       Min        1Q    Median        3Q       Max 
+## -0.304339 -0.067127  0.000313  0.104633  0.309120 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)   -0.352      0.275   -1.28     0.21
-## cv.rt          1.712      1.381    1.24     0.22
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   -0.343      0.200   -1.72    0.095 .
+## cv.rt          1.754      1.090    1.61    0.117  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.144 
-## Convergence in 15 IRWLS iterations
+## Robust residual standard error: 0.151 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  2 weights are ~= 1. The remaining 34 ones are summarized as
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.400   0.867   0.953   0.901   0.991   0.999 
+##   0.656   0.861   0.956   0.909   0.991   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Connectivity with Right Frontoparietal during Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.33414 -0.10251  0.00539  0.08966  0.25336 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)  -0.0822     0.0458   -1.79    0.082 .
+## cv.rt        -1.0288     0.6740   -1.53    0.136  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.16 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.642   0.868   0.953   0.919   0.991   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -999,23 +1204,21 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.32505 -0.06931  0.00101  0.04858  0.18874 
+##     Min      1Q  Median      3Q     Max 
+## -0.3007 -0.0681 -0.0141  0.0626  0.1927 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) -0.419887   0.242756   -1.73    0.093 .
-## mean.rt      0.000372   0.000405    0.92    0.365  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.364030   0.358524   -1.02     0.32
+## mean.rt      0.000264   0.000607    0.43     0.67
 ## 
-## Robust residual standard error: 0.0942 
-## Convergence in 17 IRWLS iterations
+## Robust residual standard error: 0.0924 
+## Convergence in 26 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##  one weight is ~= 1. The remaining 35 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.209   0.839   0.944   0.871   0.985   0.997 
+##   0.268   0.859   0.948   0.885   0.990   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1033,23 +1236,57 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.28413 -0.07422  0.00936  0.06849  0.21732 
+##     Min      1Q  Median      3Q     Max 
+## -0.2696 -0.0573 -0.0109  0.0690  0.2469 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) -0.308900   0.155082   -1.99    0.054 .
-## mean.rt      0.000116   0.000160    0.72    0.474  
+## (Intercept) -2.79e-01   1.55e-01   -1.81     0.08 .
+## mean.rt      7.48e-05   1.61e-04    0.46     0.65  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.111 
+## Robust residual standard error: 0.104 
 ## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
 ##  2 weights are ~= 1. The remaining 34 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.491   0.907   0.957   0.909   0.985   0.999 
+##   0.481   0.891   0.955   0.904   0.989   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.26000 -0.05668 -0.00467  0.06612  0.26571 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) -2.20e-01   7.97e-02   -2.77   0.0091 **
+## mean.rt      3.54e-05   1.94e-04    0.18   0.8560   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.107 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.516   0.898   0.960   0.905   0.982   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1063,7 +1300,7 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ```
 
 ```r
-tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 3)
 grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ mean.rt, "z", "mean.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x = mean.rt, y = z)) + geom_hline(aes(yintercept = 0)) + 
@@ -1100,23 +1337,23 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.2523 -0.0581  0.0165  0.0756  0.1864 
+##      Min       1Q   Median       3Q      Max 
+## -0.23612 -0.07152  0.00837  0.07026  0.19173 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   -0.357      0.152   -2.35    0.024 *
-## cv.rt          0.664      0.639    1.04    0.307  
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)   -0.425      0.114   -3.72  0.00072 ***
+## cv.rt          0.930      0.489    1.90  0.06534 .  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.104 
-## Convergence in 17 IRWLS iterations
+## Robust residual standard error: 0.107 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.532   0.870   0.945   0.899   0.982   0.998 
+##   0.607   0.866   0.946   0.918   0.984   0.998 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1134,21 +1371,57 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.2537 -0.0735  0.0240  0.0727  0.2660 
+##      Min       1Q   Median       3Q      Max 
+## -0.23563 -0.05686  0.00103  0.05057  0.23653 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)   -0.280      0.186   -1.51     0.14
-## cv.rt          0.446      0.959    0.47     0.64
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)   -0.413      0.134   -3.09    0.004 **
+## cv.rt          1.144      0.741    1.54    0.132   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.108 
-## Convergence in 14 IRWLS iterations
+## Robust residual standard error: 0.101 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.527   0.876   0.950   0.901   0.984   0.998 
+##   0.559   0.866   0.971   0.905   0.986   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Difference 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.26608 -0.06890  0.00235  0.06679  0.19393 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  -0.2389     0.0304   -7.85  3.9e-09 ***
+## cv.rt        -0.5966     0.5377   -1.11     0.28    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.107 
+## Convergence in 13 IRWLS iterations
+## 
+## Robustness weights: 
+##  6 weights are ~= 1. The remaining 30 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.515   0.884   0.926   0.903   0.979   0.999 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1162,7 +1435,7 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
 ```
 
 ```r
-tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 3)
 grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ cv.rt, "z", "cv.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x = cv.rt, y = z)) + geom_hline(aes(yintercept = 0)) + 
@@ -1205,7 +1478,7 @@ meanrt.single <- function(df, names, title) {
     bb.df$outlier <- factor(bb.df$outlier)
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         model <- lmrob(mean.rt ~ behavior, sdf, maxit.scale = 500)
         sgrid <- data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), 
             length = 20))
@@ -1247,7 +1520,7 @@ cvrt.single <- function(df, names, title) {
     bb.df$outlier <- factor(bb.df$outlier)
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier == "no", ], .(measure), function(sdf) {
         model <- lmrob(cv.rt ~ behavior, sdf, maxit.scale = 500)
         sgrid <- data.frame(behavior = seq(min(sdf$behavior), max(sdf$behavior), 
             length = 20))
@@ -1276,6 +1549,1098 @@ cvrt.single <- function(df, names, title) {
 
 All of these regression analyses were done individually (i.e., each phenotypic measure was associated with RT in an individual/seperate model).
 
+### Incoherent-Coherent (Difference) Trials
+
+
+```r
+title <- "Difference Trials"
+df_phenos_difference <- subset(df_phenos, condition == "Difference")
+```
+
+
+#### Mean RT
+
+
+```r
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+meanrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for SIPI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -95.24 -42.33  -5.53  41.87 108.71 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)   872.42     224.36    3.89   0.0081 **
+## SIPI           -3.77       1.63   -2.32   0.0596 . 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 98.4 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.999 0.939 0.997 0.945 0.892 0.991 0.992 0.916
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -115.71  -54.08   -2.48   44.24  136.06 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  390.358     61.840    6.31  0.00074 ***
+## RRS           -0.432      1.109   -0.39  0.71000    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 116 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 1.000 0.948 1.000 0.911 0.878 0.994 0.986 0.956
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+##  -27.7  -18.9   10.2   22.7  187.6 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)   69.626     37.192    1.87  0.11036    
+## ERQ            6.309      0.873    7.23  0.00036 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 40.8 
+## Convergence in 6 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.99722 0.95905 0.97567 0.99040 0.00122 0.96564 0.98447 0.95840
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for BDI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -47.06 -25.37  -1.88  47.85 365.62 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)   420.33      24.54   17.13  2.5e-06 ***
+## BDI           -19.74       5.43   -3.64    0.011 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 59.9 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.972 0.660 0.999 0.987 0.000 0.986 1.000 0.945
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for AIM 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -120.772  -53.296   -0.586   39.422  133.420 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  298.412    407.375    0.73     0.49
+## AIM            0.593      3.265    0.18     0.86
+## 
+## Robust residual standard error: 112 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 1.000 0.938 1.000 0.897 0.875 0.997 0.984 0.962
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-meanrt-totals](figure/difference-meanrt-totals.png) 
+
+
+
+```r
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+meanrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for SIPI_PAC 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -80.27 -57.22   1.29  28.91 114.75 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)   684.92     176.36    3.88   0.0081 **
+## SIPI_PAC       -6.75       3.59   -1.88   0.1090   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 93.3 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 1.000 0.908 1.000 0.943 0.867 0.973 1.000 0.934
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_GFFD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -99.09 -39.64   1.07  35.78 162.00 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   541.08     149.91    3.61    0.011 *
+## SIPI_GFFD      -5.09       4.94   -1.03    0.343  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 72 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.979 0.973 0.997 0.943 0.592 0.996 0.980 0.835
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_PCD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -119.96  -49.34   -5.88   46.80  128.21 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  422.390    300.702    1.40     0.21
+## SIPI_PCD      -0.933      5.528   -0.17     0.87
+## 
+## Robust residual standard error: 115 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.999 0.937 1.000 0.903 0.890 0.994 0.989 0.958
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-meanrt-sipi](figure/difference-meanrt-sipi.png) 
+
+
+
+```r
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+meanrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for ERQ_Reappraisal 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -66.32 -53.07   1.63  26.88 175.32 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)
+## (Intercept)       230.60     138.60    1.66     0.15
+## ERQ_Reappraisal     4.32       3.72    1.16     0.29
+## 
+## Robust residual standard error: 75.1 
+## Convergence in 12 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.998 0.958 0.994 0.962 0.565 0.999 0.930 0.931
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ_Suppression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+##  -67.9  -43.6  -13.8   51.1   96.8 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)       185.04      76.97    2.40    0.053 .
+## ERQ_Suppression    14.23       5.81    2.45    0.050 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 84.5 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.954 0.968 0.982 0.942 0.884 1.000 0.964 0.986
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-meanrt-erq](figure/difference-meanrt-erq.png) 
+
+
+
+```r
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+meanrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for RRS_Brooding 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##    Min     1Q Median     3Q    Max 
+## -114.0  -66.0   23.6   52.1   89.9 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)     211.7      141.2    1.50     0.18
+## RRS_Brooding     23.1       22.0    1.05     0.33
+## 
+## Robust residual standard error: 89.9 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.997 0.951 0.975 0.859 0.911 0.989 0.899 0.965
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Depression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -115.30  -45.79    2.52   36.15  137.35 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)      427.13      60.87    7.02  0.00042 ***
+## RRS_Depression    -2.62       2.26   -1.16  0.29023    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 112 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.996 0.962 0.998 0.906 0.868 0.996 0.992 0.948
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Reflection 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -110.06  -58.41   -3.01   44.10  138.77 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)      359.88      72.79    4.94   0.0026 **
+## RRS_Reflection     1.21       4.70    0.26   0.8054   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 115 
+## Convergence in 8 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.998 0.948 0.999 0.918 0.871 0.994 0.982 0.957
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-meanrt-rrs](figure/difference-meanrt-rrs.png) 
+
+
+
+```r
+names <- c("PANAS_Positive", "PANAS_Negative")
+meanrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for PANAS_Positive 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -110.38  -54.34    1.97   41.00  146.00 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)
+## (Intercept)      331.84     277.11    1.20     0.28
+## PANAS_Positive     1.06       6.88    0.15     0.88
+## 
+## Robust residual standard error: 79.1 
+## Convergence in 14 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.999 0.908 0.998 0.831 0.714 0.989 0.970 0.909
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for PANAS_Negative 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -122.248  -56.479   -0.192   52.014  120.611 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)      353.04     117.41    3.01    0.024 *
+## PANAS_Negative     1.20       8.18    0.15    0.888  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 81.6 
+## Convergence in 17 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.999 0.882 0.999 0.806 0.811 0.980 0.967 0.919
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-meanrt-panas](figure/difference-meanrt-panas.png) 
+
+
+#### RT CV
+
+
+```r
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+cvrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for SIPI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10805 -0.01741  0.00139  0.01938  0.02739 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.039670   0.277126    0.14     0.89
+## SIPI        -0.000692   0.002206   -0.31     0.76
+## 
+## Robust residual standard error: 0.0339 
+## Convergence in 17 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.972 0.972 0.970 0.290 0.978 0.942 0.967 0.980
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.11615 -0.01488 -0.00704  0.00416  0.03576 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -0.076873   0.004788  -16.05  3.7e-06 ***
+## RRS          0.000755   0.000205    3.67     0.01 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0276 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.9999 0.9569 0.9918 0.0367 0.9694 0.8526 0.9960 0.9750
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.04232 -0.01373  0.00492  0.01496  0.01986 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.23396    0.12264   -1.91     0.11
+## ERQ          0.00392    0.00250    1.57     0.17
+## 
+## Robust residual standard error: 0.0198 
+## Convergence in 27 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.923 0.864 0.976 0.627 0.956 0.999 0.910 0.965
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for BDI 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.11174 -0.01916  0.00478  0.01016  0.02974 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.03814    0.01188   -3.21    0.018 *
+## BDI         -0.00239    0.00161   -1.49    0.188  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0316 
+## Convergence in 10 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.998 0.976 0.944 0.185 0.994 0.921 0.998 0.973
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for AIM
+```
+
+```
+## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
+```
+
+```
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.13118 -0.02082 -0.00258  0.01629  0.02043 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.161107   0.239404   -0.67     0.53
+## AIM          0.000911   0.001990    0.46     0.66
+## 
+## Robust residual standard error: 0.032 
+## Convergence in 18 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.9787 0.9633 0.9629 0.0555 0.9587 0.9695 0.9983 0.9920
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-cvrt-totals](figure/difference-cvrt-totals.png) 
+
+
+
+```r
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+cvrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for SIPI_PAC 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.09683 -0.01344 -0.00229  0.02163  0.02960 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.07322    0.11720    0.62     0.56
+## SIPI_PAC    -0.00275    0.00289   -0.95     0.38
+## 
+## Robust residual standard error: 0.0334 
+## Convergence in 17 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.965 0.951 0.989 0.380 0.972 0.996 0.930 0.989
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_GFFD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.077008 -0.021442  0.000534  0.022753  0.044949 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.04611    0.12815    0.36     0.73
+## SIPI_GFFD   -0.00308    0.00433   -0.71     0.50
+## 
+## Robust residual standard error: 0.0355 
+## Convergence in 22 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.859 0.997 0.967 0.616 0.996 0.922 0.973 0.966
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for SIPI_PCD 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10378 -0.01262 -0.00453  0.01150  0.03932 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept) -0.14201    0.11557   -1.23     0.27
+## SIPI_PCD     0.00172    0.00202    0.85     0.43
+## 
+## Robust residual standard error: 0.0324 
+## Convergence in 14 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.951 0.995 0.988 0.285 0.999 0.871 0.987 0.983
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-cvrt-sipi](figure/difference-cvrt-sipi.png) 
+
+
+
+```r
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+cvrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for ERQ_Reappraisal 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.05833 -0.01011 -0.00142  0.00906  0.03144 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)
+## (Intercept)     -0.17608    0.19071   -0.92     0.39
+## ERQ_Reappraisal  0.00377    0.00524    0.72     0.50
+## 
+## Robust residual standard error: 0.0214 
+## Convergence in 44 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.814 0.964 1.000 0.439 0.905 0.996 0.984 0.999
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for ERQ_Suppression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10668 -0.01805  0.00192  0.01713  0.03555 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)
+## (Intercept)     -0.08230    0.06193   -1.33     0.23
+## ERQ_Suppression  0.00224    0.00379    0.59     0.58
+## 
+## Robust residual standard error: 0.0352 
+## Convergence in 14 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.994 0.983 0.967 0.338 0.979 0.909 0.961 0.998
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-cvrt-erq](figure/difference-cvrt-erq.png) 
+
+
+
+```r
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+cvrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for RRS_Brooding 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.11565 -0.01324 -0.00561  0.01731  0.03778 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)  -0.06858    0.02669   -2.57    0.042 *
+## RRS_Brooding  0.00252    0.00342    0.74    0.490  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0347 
+## Convergence in 9 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.975 0.978 0.989 0.244 0.977 0.895 1.000 0.990
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Depression 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.11740 -0.01463 -0.00753  0.01034  0.03721 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    -0.061105   0.004337  -14.09    8e-06 ***
+## RRS_Depression  0.000595   0.000607    0.98     0.36    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0316 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.996 0.959 0.981 0.138 0.980 0.878 1.000 0.981
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for RRS_Reflection 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10865 -0.01065 -0.00600  0.00238  0.03226 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    -0.082979   0.008203  -10.12  5.4e-05 ***
+## RRS_Reflection  0.003129   0.000705    4.44   0.0044 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0211 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.984 0.976 1.000 0.000 0.985 0.799 0.998 0.946
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-cvrt-rrs](figure/difference-cvrt-rrs.png) 
+
+
+
+```r
+names <- c("PANAS_Positive", "PANAS_Negative")
+cvrt.single(df_phenos_difference, names, title)
+```
+
+```
+## 
+## Running regression for PANAS_Positive 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.11626 -0.01106 -0.00124  0.00427  0.02419 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    -0.128183   0.014619   -8.77  0.00012 ***
+## PANAS_Positive  0.002162   0.000494    4.37  0.00470 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0214 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.997 0.990 0.999 0.000 1.000 0.886 0.996 0.895
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## 
+## Running regression for PANAS_Negative 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.10269 -0.01929  0.00842  0.01444  0.02673 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)
+## (Intercept)    -0.01960    0.02906   -0.67     0.53
+## PANAS_Negative -0.00185    0.00234   -0.79     0.46
+## 
+## Robust residual standard error: 0.0327 
+## Convergence in 15 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.962 0.987 0.926 0.304 0.989 0.940 0.998 0.979
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+![plot of chunk difference-cvrt-panas](figure/difference-cvrt-panas.png) 
+
+
 ### Coherent Trials
 
 
@@ -1302,18 +2667,18 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -154.2  -53.0  -13.1   48.4  150.3 
+## -132.2  -10.3   10.1   30.8  239.2 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)   421.94     401.78    1.05     0.33
-## SIPI            2.07       2.97    0.70     0.51
+## (Intercept)   488.36     375.28    1.30     0.24
+## SIPI            1.24       2.84    0.44     0.68
 ## 
-## Robust residual standard error: 128 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 64.3 
+## Convergence in 13 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.985 0.983 0.871 0.878 0.996 0.923 1.000 0.997
+## [1] 0.965 0.988 0.652 0.136 0.999 0.941 0.996 1.000
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1333,20 +2698,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -120.5  -57.3   -3.7   34.7  183.1 
+##  -86.2  -11.2   19.2   43.3  272.3 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   590.10     189.50    3.11    0.021 *
-## RRS             2.66       4.31    0.62    0.560  
+## (Intercept)   539.59     147.05    3.67     0.01 *
+## RRS             2.64       3.61    0.73     0.49  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 115 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 59.8 
+## Convergence in 14 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.947 0.985 0.902 0.781 0.999 0.942 0.998 0.997
+## [1] 0.87982 0.95565 0.81955 0.00296 0.99821 0.94329 0.98654 0.99402
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1366,20 +2731,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -165.03  -43.47   -7.94   48.51  135.61 
+## -128.90   -2.95   15.88   26.70  294.72 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   885.47     181.89    4.87   0.0028 **
-## ERQ            -4.22       4.07   -1.04   0.3397   
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)   554.23      84.67    6.55  0.00061 ***
+## ERQ             1.97       1.35    1.46  0.19331    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 111 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 57.4 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.988 1.000 0.808 0.929 0.999 0.868 0.993 0.979
+## [1] 0.979 0.999 0.593 0.000 0.991 0.991 0.925 0.995
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1399,20 +2764,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -143.5  -53.3  -20.4   56.6  155.9 
+## -127.3  -22.6   12.8   41.6  247.1 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   659.72      48.90   13.49    1e-05 ***
-## BDI             7.24       7.00    1.04     0.34    
+## (Intercept)   635.08      34.93   18.18  1.8e-06 ***
+## BDI             3.13       6.94    0.45     0.67    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 124 
-## Convergence in 7 IRWLS iterations
+## Robust residual standard error: 64.9 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.999 0.983 0.881 0.860 0.982 0.933 0.990 0.996
+## [1] 0.991 0.985 0.680 0.115 0.983 0.960 0.964 1.000
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1431,21 +2796,19 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -157.7  -25.0  -13.2   45.8   86.9 
+##     Min      1Q  Median      3Q     Max 
+## -137.14  -15.55    6.93   35.85  227.68 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)  -186.28     303.97   -0.61    0.562  
-## AIM             7.00       2.38    2.94    0.026 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)   407.97     585.07    0.70     0.51
+## AIM             1.95       4.73    0.41     0.69
 ## 
-## Robust residual standard error: 74.8 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 60.5 
+## Convergence in 17 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.999 0.995 0.636 0.881 0.990 0.989 0.925 0.976
+## [1] 0.983 0.974 0.587 0.126 0.996 1.000 0.947 0.995
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1475,21 +2838,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -163.7  -46.9  -11.4   54.2  175.4 
+##     Min      1Q  Median      3Q     Max 
+## -135.30   -9.78   12.46   35.17  255.99 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)  727.464    371.539    1.96    0.098 .
-## SIPI_PAC      -0.704      8.430   -0.08    0.936  
+## (Intercept)  660.420    207.621    3.18    0.019 *
+## SIPI_PAC      -0.236      4.713   -0.05    0.962  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 96.1 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 65.2 
+## Convergence in 17 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.982 0.967 0.753 0.719 0.999 0.942 0.979 0.990
+## [1] 0.9783 0.9872 0.6460 0.0884 1.0000 0.9779 0.9588 0.9999
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1508,21 +2871,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -137.4  -42.0   11.9   40.0  112.6 
+##     Min      1Q  Median      3Q     Max 
+## -136.91   -9.04   11.86   37.08  268.44 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   441.59     139.53    3.16    0.019 *
-## SIPI_GFFD       7.55       4.17    1.81    0.120  
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)   683.61      88.75     7.7  0.00025 ***
+## SIPI_GFFD      -1.09       2.20    -0.5  0.63786    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 117 
-## Convergence in 7 IRWLS iterations
+## Robust residual standard error: 57.1 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.935 0.997 0.878 0.944 0.997 0.917 0.997 1.000
+## [1] 0.987 0.994 0.544 0.000 0.998 0.969 0.938 0.999
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1541,21 +2904,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -169.8  -46.9  -18.7   66.8  157.9 
+##     Min      1Q  Median      3Q     Max 
+## -124.95   -5.37    3.58   34.22  279.14 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   798.92     247.26    3.23    0.018 *
-## SIPI_PCD       -1.97       4.39   -0.45    0.670  
+## (Intercept)   464.20     138.91    3.34    0.016 *
+## SIPI_PCD        3.50       2.21    1.58    0.165  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 127 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 47.3 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.984 0.989 0.845 0.865 1.000 0.961 0.979 0.995
+## [1] 0.991 1.000 0.465 0.000 0.957 0.940 0.998 1.000
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1585,21 +2948,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -172.6  -40.9  -22.2   67.4  134.8 
+##     Min      1Q  Median      3Q     Max 
+## -118.82   -9.68    6.81   30.85  312.49 
 ## 
 ## Coefficients:
 ##                 Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)       777.46     170.55    4.56   0.0039 **
-## ERQ_Reappraisal    -2.56       4.98   -0.51   0.6264   
+## (Intercept)       524.22     121.95    4.30   0.0051 **
+## ERQ_Reappraisal     3.75       2.94    1.27   0.2499   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 123 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 43.9 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.984 0.993 0.829 0.894 0.999 0.928 0.983 0.992
+## [1] 0.989 0.997 0.444 0.000 0.938 1.000 0.961 0.995
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1618,21 +2981,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -133.9  -48.4  -15.3   57.1  133.9 
+##     Min      1Q  Median      3Q     Max 
+## -120.13  -13.69    7.74   40.85  234.76 
 ## 
 ## Coefficients:
 ##                 Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)       845.22      99.12    8.53  0.00014 ***
-## ERQ_Suppression   -11.29       6.81   -1.66  0.14840    
+## (Intercept)       728.07      79.15    9.20  9.3e-05 ***
+## ERQ_Suppression    -5.87       6.36   -0.92     0.39    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 117 
-## Convergence in 7 IRWLS iterations
+## Robust residual standard error: 57.9 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.995 0.885 0.885 0.989 0.929 0.989 0.969
+## [1] 0.9968 0.9579 0.6467 0.0636 0.9925 0.9468 1.0000 0.9866
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1663,20 +3026,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -97.16 -50.84  -8.52  27.92 179.01 
+## -67.27 -10.96   8.73  40.48 267.26 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)     479.4      131.7    3.64    0.011 *
-## RRS_Brooding     29.7       16.4    1.81    0.121  
+##              Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)     442.3      108.6    4.07   0.0066 **
+## RRS_Brooding     27.8       13.6    2.04   0.0879 . 
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 99.5 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 53.6 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.941 0.915 0.727 0.985 0.921 0.999 1.000
+## [1] 0.998 0.997 0.861 0.000 0.946 0.929 1.000 0.954
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1696,20 +3059,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -134.38  -47.01   -6.04   35.57  173.52 
+## -122.88   -8.21   19.72   38.05  258.29 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)      613.69     125.37    4.90   0.0027 **
-## RRS_Depression     3.95       5.55    0.71   0.5030   
+## (Intercept)      620.31     140.69    4.41   0.0045 **
+## RRS_Depression     1.28       5.96    0.21   0.8374   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 124 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 57.3 
+## Convergence in 14 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.953 0.994 0.895 0.829 1.000 0.946 0.999 0.997
+## [1] 0.94758 0.96512 0.62440 0.00533 0.99963 0.95314 0.96240 0.99959
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1729,20 +3092,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -154.8  -55.7   -8.3   49.9  176.2 
+##  -82.0  -12.5   23.0   35.7  290.7 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)      677.98     184.82    3.67     0.01 *
-## RRS_Reflection     1.51      13.74    0.11     0.92  
+## (Intercept)       544.7      158.7    3.43    0.014 *
+## RRS_Reflection      8.6       14.4    0.60    0.571  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 117 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 48.8 
+## Convergence in 21 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.981 0.975 0.846 0.803 0.999 0.953 0.990 0.994
+## [1] 0.759 0.989 0.803 0.000 0.969 0.949 0.953 0.998
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1772,21 +3135,21 @@ meanrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -151.50  -54.61   -6.13   52.62  173.96 
+##    Min     1Q Median     3Q    Max 
+## -86.71 -21.20   9.38  48.64 270.87 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)      640.30     272.34    2.35    0.057 .
-## PANAS_Positive     1.44       6.82    0.21    0.839  
+## (Intercept)      466.00     133.90    3.48    0.013 *
+## PANAS_Positive     4.65       3.34    1.39    0.213  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 115 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 64.3 
+## Convergence in 13 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.984 0.963 0.849 0.804 0.997 0.957 0.987 0.992
+## [1] 0.9667 0.9949 0.8411 0.0365 0.9551 0.9879 0.9260 0.9995
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1806,20 +3169,20 @@ meanrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -115.7  -60.1  -24.9   66.1  131.8 
+## -127.4  -13.9   15.2   42.8  250.8 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)      583.43     109.56    5.33   0.0018 **
-## PANAS_Negative     6.29       5.52    1.14   0.2975   
+## (Intercept)     632.888    129.926    4.87   0.0028 **
+## PANAS_Negative    0.853      6.317    0.14   0.8970   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 117 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 56.9 
+## Convergence in 13 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.978 0.994 0.913 0.888 0.971 0.894 0.986 0.997
+## [1] 0.9704 0.9751 0.5948 0.0129 0.9983 0.9501 0.9453 1.0000
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1852,18 +3215,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.01160 -0.00878 -0.00414  0.02139  0.09697 
+## -0.00674 -0.00505 -0.00147  0.01204  0.15103 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept) 0.130579   0.068076    1.92     0.10
-## SIPI        0.000790   0.000579    1.36     0.22
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) 0.147871   0.038788    3.81   0.0088 **
+## SIPI        0.000488   0.000342    1.43   0.2040   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0197 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0104 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.546 1.000 0.969 0.000 0.962 0.986 0.971 0.985
+## [1] 0.475 0.959 0.980 0.000 0.995 1.000 0.974 0.962
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1882,21 +3247,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.01841 -0.00788  0.00438  0.01323  0.11037 
+##       Min        1Q    Median        3Q       Max 
+## -0.007558 -0.006571  0.000821  0.009398  0.158748 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) 0.165573   0.023807    6.95  0.00044 ***
-## RRS         0.001821   0.000645    2.82  0.03016 *  
+## (Intercept) 0.174484   0.014523    12.0    2e-05 ***
+## RRS         0.000998   0.000383     2.6     0.04 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0201 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 0.0136 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.932 0.998 0.969 0.000 0.993 0.925 0.953 0.993
+## [1] 0.941 0.962 0.972 0.000 0.977 0.972 0.980 0.983
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1915,21 +3280,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.03733 -0.02113 -0.00593  0.02615  0.04556 
+##       Min        1Q    Median        3Q       Max 
+## -0.010432 -0.007295 -0.000451  0.011154  0.159128 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)  0.37145    0.11874    3.13     0.02 *
-## ERQ         -0.00276    0.00231   -1.20     0.28  
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 0.203959   0.021240    9.60  7.3e-05 ***
+## ERQ         0.000181   0.000417    0.43     0.68    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0253 
-## Convergence in 21 IRWLS iterations
+## Robust residual standard error: 0.0153 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.778 0.936 0.892 0.726 0.950 1.000 0.978 0.812
+## [1] 0.696 0.994 0.980 0.000 0.991 0.958 0.990 0.977
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1949,20 +3314,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.01198 -0.00604  0.00118  0.02223  0.10628 
+## -0.01133 -0.01002  0.00284  0.00992  0.15718 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  0.22378    0.02288    9.78  6.6e-05 ***
-## BDI          0.00138    0.00235    0.59     0.58    
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.216859   0.010260    21.1  7.3e-07 ***
+## BDI         -0.000841   0.001049    -0.8     0.45    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0173 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 0.016 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.208 0.997 0.984 0.000 1.000 0.957 0.972 0.990
+## [1] 0.785 0.992 0.963 0.000 0.999 0.955 0.994 0.965
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -1982,20 +3347,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.01881 -0.00995 -0.00216  0.02004  0.11420 
+## -0.01421 -0.00446  0.00115  0.00854  0.16213 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  0.331951   0.071736    4.63   0.0036 **
-## AIM         -0.000772   0.000568   -1.36   0.2231   
+## (Intercept)  0.279685   0.058626    4.77   0.0031 **
+## AIM         -0.000534   0.000430   -1.24   0.2608   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0256 
+## Robust residual standard error: 0.0147 
 ## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.72217 0.99359 0.96365 0.00877 0.98257 0.99146 0.99914 0.95144
+## [1] 0.730 0.997 0.973 0.000 0.995 1.000 0.998 0.917
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2025,21 +3390,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.01657 -0.00641 -0.00380  0.02080  0.09755 
+##       Min        1Q    Median        3Q       Max 
+## -0.008965 -0.004849 -0.000567  0.010736  0.150916 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) 0.176627   0.020726    8.52  0.00014 ***
-## SIPI_PAC    0.001260   0.000625    2.01  0.09057 .  
+## (Intercept) 0.176352   0.007765   22.71  4.8e-07 ***
+## SIPI_PAC    0.000786   0.000270    2.91    0.027 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.021 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 0.0124 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.562523 0.997814 0.944230 0.000376 0.973810 0.995044 0.996123 0.975556
+## [1] 0.587 0.985 0.959 0.000 0.992 1.000 0.998 0.953
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2059,18 +3424,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.02482 -0.01533 -0.00544  0.01210  0.04450 
+## -0.01253 -0.00632 -0.00291  0.01591  0.14292 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  0.08798    0.08975    0.98     0.36
-## SIPI_GFFD    0.00471    0.00278    1.69     0.14
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)  0.17963    0.03801    4.73   0.0032 **
+## SIPI_GFFD    0.00104    0.00122    0.85   0.4272   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0232 
-## Convergence in 19 IRWLS iterations
+## Robust residual standard error: 0.0158 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.997 0.790 0.983 0.693 0.899 0.964 0.951 1.000
+## [1] 0.870 0.922 0.988 0.000 0.944 0.983 1.000 0.986
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2090,18 +3457,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.02474 -0.01647 -0.00195  0.02006  0.09390 
+## -0.00617 -0.00353  0.00167  0.01185  0.16274 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  0.29554    0.22593    1.31     0.24
-## SIPI_PCD    -0.00108    0.00381   -0.28     0.79
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) 0.177065   0.039292    4.51   0.0041 **
+## SIPI_PCD    0.000616   0.000650    0.95   0.3798   
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0263 
-## Convergence in 19 IRWLS iterations
+## Robust residual standard error: 0.00985 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.786 1.000 0.936 0.174 0.995 0.921 0.978 0.972
+## [1] 0.188 0.983 0.992 0.000 0.995 0.974 0.999 0.965
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2131,21 +3500,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.03752 -0.03011  0.00401  0.01990  0.04795 
+##       Min        1Q    Median        3Q       Max 
+## -0.009266 -0.007087 -0.000107  0.011300  0.157756 
 ## 
 ## Coefficients:
-##                 Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)      0.34892    0.10121    3.45    0.014 *
-## ERQ_Reappraisal -0.00318    0.00268   -1.18    0.281  
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)     0.208365   0.027962    7.45   0.0003 ***
+## ERQ_Reappraisal 0.000113   0.000707    0.16   0.8782    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0264 
-## Convergence in 20 IRWLS iterations
+## Robust residual standard error: 0.0138 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.898 0.962 0.824 0.722 0.882 1.000 0.990 0.886
+## [1] 0.623 0.987 0.979 0.000 0.990 0.959 0.991 0.968
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2164,21 +3533,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -0.022130 -0.012328  0.000146  0.018038  0.105574 
+##      Min       1Q   Median       3Q      Max 
+## -0.00927 -0.00781 -0.00115  0.01244  0.15706 
 ## 
 ## Coefficients:
 ##                 Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)     0.228968   0.013231   17.31  2.4e-06 ***
-## ERQ_Suppression 0.000514   0.000905    0.57     0.59    
+## (Intercept)     0.207051   0.015874   13.04  1.3e-05 ***
+## ERQ_Suppression 0.000405   0.001445    0.28     0.79    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0257 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0149 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.7151 0.9971 0.9563 0.0546 0.9967 0.9338 0.9906 0.9850
+## [1] 0.713 0.991 0.970 0.000 0.980 0.965 0.977 0.977
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2208,21 +3577,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.01243  0.00123  0.00299  0.01890  0.11270 
+##       Min        1Q    Median        3Q       Max 
+## -0.007704 -0.006861 -0.000628  0.012067  0.156605 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   0.18634    0.00855   21.79  6.1e-07 ***
-## RRS_Brooding  0.00581    0.00096    6.04  0.00093 ***
+## (Intercept)  0.205563   0.031220    6.58  0.00059 ***
+## RRS_Brooding 0.000855   0.003570    0.24  0.81861    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0124 
-## Convergence in 5 IRWLS iterations
+## Robust residual standard error: 0.0127 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.000 1.000 0.991 0.000 0.993 0.910 0.998 0.996
+## [1] 0.536 0.981 0.986 0.000 0.974 0.966 0.992 0.971
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2242,20 +3611,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.01556 -0.00842  0.00379  0.01446  0.10410 
+## -0.00781 -0.00628 -0.00175  0.01166  0.15534 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)     0.17763    0.01642   10.82  3.7e-05 ***
-## RRS_Depression  0.00290    0.00085    3.41    0.014 *  
+## (Intercept)    0.183141   0.012594   14.54  6.6e-06 ***
+## RRS_Depression 0.001484   0.000603    2.46    0.049 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0211 
+## Robust residual standard error: 0.0148 
 ## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.956 0.958 0.997 0.000 0.997 0.953 0.951 0.992
+## [1] 0.952 0.916 0.997 0.000 0.975 0.985 0.984 0.984
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2274,21 +3643,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.02410 -0.01042  0.00378  0.01736  0.11789 
+##       Min        1Q    Median        3Q       Max 
+## -0.010982 -0.002644  0.000338  0.009664  0.164477 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)     0.18807    0.01641   11.46  2.7e-05 ***
-## RRS_Reflection  0.00422    0.00154    2.73    0.034 *  
+## (Intercept)     0.18138    0.01217   14.91  5.7e-06 ***
+## RRS_Reflection  0.00279    0.00103    2.72    0.035 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0256 
+## Robust residual standard error: 0.013 
 ## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.9390 0.9854 0.9859 0.0014 0.9644 0.9211 0.9991 0.9839
+## [1] 0.948 1.000 0.950 0.000 1.000 0.936 1.000 0.961
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2318,21 +3687,21 @@ cvrt.single(df_phenos_coherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.02291 -0.01428 -0.00102  0.01662  0.10302 
+##       Min        1Q    Median        3Q       Max 
+## -0.011441 -0.004063 -0.000964  0.010824  0.156756 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)    0.231896   0.028765    8.06  0.00019 ***
-## PANAS_Positive 0.000132   0.000775    0.17  0.86988    
+## (Intercept)    0.188077   0.010037   18.74  1.5e-06 ***
+## PANAS_Positive 0.000648   0.000385    1.68     0.14    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0269 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0146 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.733 0.996 0.966 0.110 0.995 0.935 0.998 0.977
+## [1] 0.717 1.000 0.998 0.000 1.000 0.945 0.987 0.954
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2352,20 +3721,20 @@ cvrt.single(df_phenos_coherent, names, title)
 ## 
 ## Weighted Residuals:
 ##       Min        1Q    Median        3Q       Max 
-## -0.011019 -0.008899  0.000516  0.016736  0.095550 
+## -0.010150 -0.007633 -0.000853  0.011901  0.153283 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)     0.20817    0.01076   19.34  1.2e-06 ***
-## PANAS_Negative  0.00150    0.00101    1.49     0.19    
+## (Intercept)    0.207794   0.009402   22.10  5.6e-07 ***
+## PANAS_Negative 0.000295   0.000714    0.41     0.69    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0175 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.016 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.450 0.993 0.995 0.000 0.964 0.970 0.987 0.979
+## [1] 0.747 0.984 0.988 0.000 0.964 0.982 0.994 0.972
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2394,7 +3763,7 @@ df_phenos_incoherent <- subset(df_phenos, condition == "Incoherent")
 
 
 ```r
-names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+names <- c("SIPI", "ERQ", "BDI", "AIM")  # RRS won't work
 meanrt.single(df_phenos_incoherent, names, title)
 ```
 
@@ -2407,53 +3776,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -204.42 -108.19   -9.03  123.80  193.43 
+## -161.35  -74.19    4.55   93.17  118.29 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) 1032.642    467.392    2.21    0.069 .
-## SIPI           0.401      3.357    0.12    0.909  
+## (Intercept) 1089.498    296.489    3.67     0.01 *
+## SIPI          -0.311      2.143   -0.15     0.89  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 220 
-## Convergence in 6 IRWLS iterations
-## 
-## Robustness weights: 
-## [1] 1.000 0.923 0.954 0.946 0.931 0.978 1.000 0.984
-## Algorithmic parameters: 
-## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
-##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
-##      nResample         max.it       best.r.s       k.fast.s          k.max 
-##            500             50              2              1            200 
-##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
-##            500              0           1000              0           2000 
-##           psi   subsampling        method           cov 
-##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
-## seed : int(0) 
-## 
-## 
-## Running regression for RRS 
-## 
-## Call:
-## lmrob(formula = f, data = df, maxit.scale = 500)
-## 
-## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -189.7  -82.9  -55.7  129.7  190.8 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   935.66     161.35    5.80   0.0012 **
-## RRS             3.84       3.45    1.11   0.3085   
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-## 
-## Robust residual standard error: 205 
+## Robust residual standard error: 152 
 ## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.987 0.924 0.979 0.923 0.923 0.974 0.997 0.987
+## [1] 0.985 0.970 0.900 0.946 0.953 0.995 0.997 0.954
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2473,20 +3809,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -154.86 -104.65   -2.82   73.17  201.92 
+## -160.66  -75.89    5.04   96.51  108.83 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  1437.23     215.82    6.66  0.00055 ***
-## ERQ            -7.93       5.29   -1.50  0.18491    
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) 1068.613    203.735    5.25   0.0019 **
+## ERQ           -0.428      4.271   -0.10   0.9234   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 160 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 112 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.967 0.916 0.993 0.915 0.860 1.000 0.943
+## [1] 0.970 0.938 0.820 0.918 0.915 0.986 0.991 0.913
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2505,21 +3841,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -187.03  -81.01   -2.49   85.54  162.58 
+##    Min     1Q Median     3Q    Max 
+## -114.8  -48.4  -15.3   84.0  102.6 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   981.82      63.45   15.48  4.6e-06 ***
-## BDI            21.39       5.87    3.65    0.011 *  
+## (Intercept)   972.91      44.35   21.94  5.9e-07 ***
+## BDI            15.30       4.45    3.44    0.014 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 170 
+## Robust residual standard error: 124 
 ## Convergence in 6 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.984 0.893 0.969 0.948 1.000 0.918 1.000 0.982
+## [1] 1.000 0.939 0.923 0.959 0.996 0.957 0.993 0.950
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2539,20 +3875,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -139.3  -88.2   38.4   56.6  141.5 
+## -147.1  -41.6  -13.4   55.4  132.8 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  -389.65     392.55   -0.99   0.3592   
-## AIM            11.64       3.07    3.79   0.0091 **
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   240.38     331.18    0.73    0.495  
+## AIM             6.36       2.55    2.50    0.047 *
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 141 
+## Robust residual standard error: 116 
 ## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.986 0.928 0.913 0.991 0.911 0.974 0.984 0.995
+## [1] 0.995 0.884 0.859 0.986 0.950 0.979 1.000 0.991
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2582,21 +3918,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -201.8 -109.8   14.8   79.8  200.6 
+##      Min       1Q   Median       3Q      Max 
+## -157.846  -73.394   -0.674   94.001  127.780 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  1289.58     252.84    5.10   0.0022 **
-## SIPI_PAC       -4.41       5.71   -0.77   0.4689   
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  1146.66     143.52    7.99   0.0002 ***
+## SIPI_PAC       -2.13       3.31   -0.64   0.5438    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 213 
+## Robust residual standard error: 154 
 ## Convergence in 6 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.920 0.951 0.921 0.938 0.995 0.997 0.982
+## [1] 0.985 0.969 0.906 0.938 0.958 0.999 0.999 0.956
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2615,21 +3951,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -121.7  -46.5  -20.4   44.9  165.8 
+##     Min      1Q  Median      3Q     Max 
+## -146.67  -87.72    7.13   86.79  124.21 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)   545.53     134.20    4.07   0.0066 **
-## SIPI_GFFD      15.86       3.85    4.12   0.0062 **
+## (Intercept)   937.71     217.43    4.31    0.005 **
+## SIPI_GFFD       3.25       6.02    0.54    0.608   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 123 
-## Convergence in 7 IRWLS iterations
+## Robust residual standard error: 150 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.913 0.995 0.946 0.998 0.904 0.842 0.995 0.999
+## [1] 0.970 0.939 0.915 0.973 0.961 0.989 0.994 0.967
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2648,21 +3984,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -187.46  -86.46    9.83   96.60  146.05 
+##    Min     1Q Median     3Q    Max 
+## -165.6  -82.6   17.7   92.4  108.8 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)  1767.45     390.74    4.52    0.004 **
-## SIPI_PCD      -13.09       7.65   -1.71    0.138   
+## (Intercept)  1185.58     256.95    4.61   0.0036 **
+## SIPI_PCD       -2.63       4.66   -0.56   0.5937   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 164 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 147 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.986 0.965 0.885 0.970 0.976 0.966 0.929 0.978
+## [1] 0.976 0.951 0.888 0.959 0.966 0.993 1.000 0.954
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2692,21 +4028,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -180.8 -106.2   10.9   73.5  196.9 
+##     Min      1Q  Median      3Q     Max 
+## -166.49  -81.22    8.71   96.09   99.60 
 ## 
 ## Coefficients:
 ##                 Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)      1365.17     177.87    7.68  0.00026 ***
-## ERQ_Reappraisal    -8.93       6.08   -1.47  0.19244    
+## (Intercept)      1087.30     165.72    6.56   0.0006 ***
+## ERQ_Reappraisal    -1.11       4.70   -0.24   0.8216    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 170 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 84.3 
+## Convergence in 17 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.997 0.962 0.900 0.990 0.951 0.882 0.991 0.966
+## [1] 0.937 0.885 0.676 0.885 0.877 0.971 0.988 0.844
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2725,21 +4061,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-##   -190   -119    -13    123    206 
+##     Min      1Q  Median      3Q     Max 
+## -164.62  -78.35    8.37   89.36  120.64 
 ## 
 ## Coefficients:
 ##                 Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)      1157.33     122.31    9.46  7.9e-05 ***
-## ERQ_Suppression    -5.46      10.13   -0.54     0.61    
+## (Intercept)      1025.87      97.33   10.54  4.3e-05 ***
+## ERQ_Suppression     1.71       7.76    0.22     0.83    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 219 
-## Convergence in 6 IRWLS iterations
+## Robust residual standard error: 149 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.933 0.961 0.953 0.921 0.976 0.998 0.977
+## [1] 0.980 0.971 0.891 0.941 0.953 0.994 0.998 0.958
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2770,20 +4106,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -246.84  -73.70   -6.79  104.02  177.08 
+## -135.95  -44.27    2.85   41.54  121.56 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)     778.8      183.0    4.26   0.0053 **
-## RRS_Brooding     43.6       29.4    1.48   0.1890   
+## (Intercept)     658.3      169.1    3.89   0.0081 **
+## RRS_Brooding     54.8       25.7    2.13   0.0769 . 
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 159 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 70.3 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.996 0.792 0.982 0.890 0.960 0.962 0.976 0.992
+## [1] 1.000 0.971 0.965 0.746 0.999 0.960 0.688 0.962
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2802,21 +4138,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -148.9  -97.7  -59.2  138.9  188.8 
+##     Min      1Q  Median      3Q     Max 
+## -173.78  -64.33    4.78   84.54  112.24 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)      912.93     153.89    5.93    0.001 **
-## RRS_Depression     8.31       6.50    1.28    0.248   
+## (Intercept)     1082.97     187.86    5.76   0.0012 **
+## RRS_Depression    -1.58       7.35   -0.21   0.8371   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 168 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 106 
+## Convergence in 12 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.965 0.930 0.971 0.897 0.888 0.951 0.992 0.984
+## [1] 0.981 0.954 0.770 0.900 0.903 0.991 0.995 0.899
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2836,20 +4172,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -200.64 -115.61    7.92  118.69  183.44 
+## -175.22  -69.65    2.07   91.57  105.24 
 ## 
 ## Coefficients:
-##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)     1119.25     189.91    5.89   0.0011 **
-## RRS_Reflection    -2.94      13.56   -0.22   0.8355   
+##                Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)     1073.04     355.69    3.02    0.023 *
+## RRS_Reflection    -1.83      25.84   -0.07    0.946  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 196 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 87.6 
+## Convergence in 22 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.907 0.926 0.937 0.922 0.975 1.000 0.979
+## [1] 0.963 0.911 0.668 0.873 0.876 0.983 0.987 0.858
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2879,21 +4215,21 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##    Min     1Q Median     3Q    Max 
-## -251.4  -84.2   -1.6  116.5  152.9 
+##     Min      1Q  Median      3Q     Max 
+## -123.84  -84.54    0.84   68.76  143.91 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)     1463.15     546.91    2.68    0.037 *
-## PANAS_Positive    -9.87      13.54   -0.73    0.494  
+## (Intercept)      899.74     312.45    2.88    0.028 *
+## PANAS_Positive     3.89       7.51    0.52    0.623  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 146 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 119 
+## Convergence in 11 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.999 0.950 0.749 0.903 0.950 0.920 0.998 0.976
+## [1] 0.964 0.984 0.904 0.904 0.872 0.996 0.996 0.919
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2913,20 +4249,20 @@ meanrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -111.8  -43.9  -14.3   38.6  230.1 
+## -92.39 -84.17  -8.16  72.15 130.12 
 ## 
 ## Coefficients:
-##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)      763.73     138.14    5.53   0.0015 **
-## PANAS_Negative    17.57       5.65    3.11   0.0208 * 
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)      895.76     110.05    8.14  0.00018 ***
+## PANAS_Negative     8.53       4.56    1.87  0.11073    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 93.4 
-## Convergence in 13 IRWLS iterations
+## Robust residual standard error: 102 
+## Convergence in 10 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.983 0.874 0.998 0.942 0.998 0.524 0.993 0.971
+## [1] 0.943 0.858 0.927 0.966 0.999 0.917 0.995 0.930
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2959,20 +4295,18 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.04168 -0.02265 -0.00289  0.02099  0.06590 
+## -0.03145 -0.02584  0.00105  0.02472  0.03155 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)  0.276489   0.088603    3.12    0.021 *
-## SIPI        -0.000731   0.000610   -1.20    0.276  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept) 0.085959   0.105748    0.81     0.45
+## SIPI        0.000651   0.000773    0.84     0.43
 ## 
-## Robust residual standard error: 0.0445 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 0.0407 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.980 0.810 0.922 0.984 0.993 0.978 0.998 0.947
+## [1] 0.946 0.985 0.946 0.971 0.968 0.954 0.989 0.949
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -2992,20 +4326,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.01261 -0.00854  0.00155  0.01599  0.08598 
+## -0.02934 -0.01915 -0.00158  0.02077  0.03526 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) 0.107135   0.016994    6.30  0.00074 ***
-## RRS         0.001548   0.000279    5.54  0.00146 ** 
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) 0.113152   0.023382    4.84   0.0029 **
+## RRS         0.001519   0.000487    3.11   0.0207 * 
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0185 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 0.0368 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.995880 0.000162 0.999816 0.985010 0.993324 0.462714 0.964050 0.957966
+## [1] 0.996 0.972 0.992 0.918 0.943 0.970 0.982 0.949
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3024,21 +4358,21 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -4.07e-02 -8.75e-03 -4.20e-07  1.46e-02  2.62e-02 
+##     Min      1Q  Median      3Q     Max 
+## -0.0349 -0.0276  0.0043  0.0179  0.0380 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) 0.049315   0.039285    1.26    0.256  
-## ERQ         0.002961   0.000858    3.45    0.014 *
+## (Intercept) 0.149665   0.072122    2.08    0.083 .
+## ERQ         0.000497   0.001416    0.35    0.738  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0276 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 0.029 
+## Convergence in 13 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.982 0.919 0.812 0.945 0.997 0.997 0.997 0.957
+## [1] 0.882 0.992 0.872 0.849 0.925 0.983 1.000 0.899
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3057,21 +4391,21 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -4.29e-02 -2.49e-02  5.92e-05  1.56e-02  6.60e-02 
+##     Min      1Q  Median      3Q     Max 
+## -0.0428 -0.0144  0.0048  0.0149  0.0341 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  0.18823    0.01927    9.77  6.6e-05 ***
-## BDI         -0.00172    0.00165   -1.04     0.34    
+## (Intercept)  0.18483    0.01864    9.91  6.1e-05 ***
+## BDI         -0.00248    0.00196   -1.27     0.25    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0445 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 0.0296 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.994 0.810 0.917 0.977 0.997 0.963 0.997 0.952
+## [1] 0.943 0.985 0.819 0.883 0.995 0.988 1.000 0.867
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3091,18 +4425,18 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.03672 -0.02770 -0.00711  0.02269  0.07002 
+## -0.03330 -0.02435  0.00355  0.01886  0.04044 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  0.14490    0.19896    0.73     0.49
-## AIM          0.00027    0.00153    0.18     0.87
+## (Intercept) 0.035081   0.103193    0.34     0.75
+## AIM         0.001078   0.000779    1.38     0.22
 ## 
-## Robust residual standard error: 0.0421 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0395 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.979 0.764 0.932 0.959 0.997 0.954 0.998 0.961
+## [1] 0.907 0.971 0.938 0.982 0.936 1.000 0.999 0.973
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3133,20 +4467,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.03513 -0.01778 -0.00245  0.01268  0.07025 
+## -0.03506 -0.02971  0.00628  0.02264  0.03380 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  0.282560   0.026388   10.71  3.9e-05 ***
-## SIPI_PAC    -0.002245   0.000622   -3.61    0.011 *  
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)  0.16422    0.06133    2.68    0.037 *
+## SIPI_PAC     0.00017    0.00129    0.13    0.900  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.037 
+## Robust residual standard error: 0.0437 
 ## Convergence in 6 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.972 0.699 0.920 0.990 0.988 0.997 0.993 0.939
+## [1] 0.946 0.990 0.942 0.961 0.962 0.980 1.000 0.947
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3166,20 +4500,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.04810 -0.01497 -0.00263  0.02550  0.04188 
+## -0.03505 -0.02724  0.00545  0.02372  0.03040 
 ## 
 ## Coefficients:
 ##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)  0.25607    0.08691    2.95    0.026 *
-## SIPI_GFFD   -0.00220    0.00222   -0.99    0.360  
+## (Intercept)  0.12337    0.05595    2.20     0.07 .
+## SIPI_GFFD    0.00144    0.00155    0.93     0.39  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0354 
-## Convergence in 12 IRWLS iterations
+## Robust residual standard error: 0.0358 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.927 0.877 0.839 0.998 1.000 0.961 0.998 0.867
+## [1] 0.961 0.935 0.939 0.984 0.914 0.959 0.999 0.951
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3199,18 +4533,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.03459 -0.03144 -0.00352  0.02712  0.05117 
+## -0.03440 -0.02872  0.00484  0.02175  0.03493 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)
-## (Intercept)  0.07833    0.10096    0.78     0.47
-## SIPI_PCD     0.00196    0.00208    0.94     0.38
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) 0.159783   0.068782    2.32    0.059 .
+## SIPI_PCD    0.000235   0.001181    0.20    0.849  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0445 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0432 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.971 0.883 0.946 0.990 0.997 0.951 0.957 0.949
+## [1] 0.941 0.992 0.943 0.954 0.964 0.983 0.999 0.946
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3241,20 +4577,18 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.03198 -0.02675  0.00672  0.01605  0.03486 
+## -0.03144 -0.02384  0.00212  0.01815  0.04177 
 ## 
 ## Coefficients:
-##                 Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)     0.087891   0.028437    3.09    0.021 *
-## ERQ_Reappraisal 0.002966   0.000947    3.13    0.020 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+##                 Estimate Std. Error t value Pr(>|t|)
+## (Intercept)     0.145419   0.150327    0.97     0.37
+## ERQ_Reappraisal 0.000798   0.003877    0.21     0.84
 ## 
-## Robust residual standard error: 0.0382 
-## Convergence in 7 IRWLS iterations
+## Robust residual standard error: 0.0198 
+## Convergence in 38 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.965 0.925 0.937 0.990 0.989 1.000 0.957 0.951
+## [1] 0.701 0.985 0.783 0.635 0.895 0.968 0.997 0.792
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3274,20 +4608,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.04879 -0.01852 -0.00554  0.02018  0.05660 
+## -0.03609 -0.03069  0.00786  0.02108  0.03237 
 ## 
 ## Coefficients:
-##                 Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)      0.13074    0.02749    4.76   0.0031 **
-## ERQ_Suppression  0.00375    0.00249    1.51   0.1826   
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)     0.166789   0.026957    6.19  0.00082 ***
+## ERQ_Suppression 0.000402   0.002136    0.19  0.85703    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0422 
-## Convergence in 8 IRWLS iterations
+## Robust residual standard error: 0.043 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.999 0.842 0.882 0.989 0.983 0.965 0.983 0.981
+## [1] 0.949 0.991 0.937 0.954 0.956 0.984 1.000 0.950
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3311,50 +4645,27 @@ cvrt.single(df_phenos_incoherent, names, title)
 
 ```
 ## 
-## Running regression for RRS_Brooding
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
+## Running regression for RRS_Brooding 
 ## 
 ## Call:
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -0.0239 -0.0215 -0.0205  0.0296  0.0620 
+##      Min       1Q   Median       3Q      Max 
+## -0.03257 -0.03120  0.00439  0.02147  0.03591 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)   0.12506    0.05430    2.30    0.061 .
-## RRS_Brooding  0.00753    0.01158    0.65    0.540  
+## (Intercept)   0.15902    0.07303    2.18    0.072 .
+## RRS_Brooding  0.00184    0.00920    0.20    0.848  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0353 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 0.0251 
+## Convergence in 15 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.945 0.738 0.969 0.959 0.970 0.909 0.967 0.966
+## [1] 0.823 0.975 0.865 0.877 0.853 0.950 0.997 0.862
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3374,20 +4685,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.00878 -0.00771  0.00159  0.02041  0.10148 
+## -0.03007 -0.02233 -0.00121  0.02449  0.03042 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)     0.10889    0.02577    4.23   0.0055 **
-## RRS_Depression  0.00264    0.00084    3.14   0.0201 * 
+## (Intercept)     0.13179    0.02735    4.82   0.0029 **
+## RRS_Depression  0.00197    0.00108    1.83   0.1176   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0167 
-## Convergence in 11 IRWLS iterations
+## Robust residual standard error: 0.04 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.994 0.000 0.999 0.980 0.978 0.221 0.975 0.981
+## [1] 0.993 0.957 0.977 0.948 0.949 0.969 0.989 0.954
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3407,20 +4718,20 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## 
 ## Weighted Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.02730 -0.01356 -0.00568  0.01296  0.06131 
+## -0.03172 -0.01081 -0.00111  0.00931  0.04527 
 ## 
 ## Coefficients:
-##                Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)     0.12109    0.01192   10.16  5.3e-05 ***
-## RRS_Reflection  0.00499    0.00211    2.36    0.056 .  
+##                Estimate Std. Error t value Pr(>|t|)   
+## (Intercept)     0.11884    0.02419    4.91   0.0027 **
+## RRS_Reflection  0.00468    0.00154    3.03   0.0230 * 
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0234 
-## Convergence in 11 IRWLS iterations
+## Robust residual standard error: 0.0248 
+## Convergence in 9 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.971 0.470 0.997 0.991 0.993 0.833 0.964 0.879
+## [1] 0.999 0.992 0.996 0.719 0.953 0.964 0.989 0.856
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3431,30 +4742,6 @@ cvrt.single(df_phenos_incoherent, names, title)
 ##           psi   subsampling        method           cov 
 ##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
 ## seed : int(0)
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
 ```
 
 ![plot of chunk incoherent-cvrt-rrs](figure/incoherent-cvrt-rrs.png) 
@@ -3474,21 +4761,21 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -0.043925 -0.007027  0.000514  0.012889  0.026504 
+##      Min       1Q   Median       3Q      Max 
+## -0.03946 -0.01160 -0.00199  0.01169  0.03431 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)     0.00615    0.04615    0.13     0.90  
-## PANAS_Positive  0.00466    0.00127    3.67     0.01 *
+## (Intercept)    0.069842   0.029945    2.33    0.058 .
+## PANAS_Positive 0.002706   0.000832    3.25    0.017 *
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0231 
-## Convergence in 9 IRWLS iterations
+## Robust residual standard error: 0.0304 
+## Convergence in 7 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 1.000 0.949 1.000 0.932 0.884 0.978 0.999 0.698
+## [1] 0.938 0.984 0.988 0.887 0.994 0.995 0.998 0.852
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -3507,21 +4794,21 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## lmrob(formula = f, data = df, maxit.scale = 500)
 ## 
 ## Weighted Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.04731 -0.02245 -0.00128  0.02163  0.06164 
+##     Min      1Q  Median      3Q     Max 
+## -0.0343 -0.0309  0.0072  0.0216  0.0337 
 ## 
 ## Coefficients:
 ##                Estimate Std. Error t value Pr(>|t|)   
-## (Intercept)     0.20109    0.04563    4.41   0.0045 **
-## PANAS_Negative -0.00119    0.00187   -0.64   0.5488   
+## (Intercept)    1.71e-01   3.07e-02    5.55   0.0014 **
+## PANAS_Negative 8.52e-05   1.74e-03    0.05   0.9625   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 ## 
-## Robust residual standard error: 0.0416 
-## Convergence in 10 IRWLS iterations
+## Robust residual standard error: 0.0415 
+## Convergence in 8 IRWLS iterations
 ## 
 ## Robustness weights: 
-## [1] 0.978 0.810 0.886 0.982 0.997 0.967 0.995 0.942
+## [1] 0.941 0.988 0.939 0.956 0.953 0.981 1.000 0.942
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
