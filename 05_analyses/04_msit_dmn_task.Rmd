@@ -44,7 +44,7 @@ Compute the group average MSIT BOLD signal.
 
 Let's see you work it ggplot. Shake it. Shake it good.
 
-```{r msit-dmn-average-plot, fig.width=12, fig.height=4, dev="cairo_ps"}
+```{r msit-dmn-average-plot, fig.width=12, fig.height=4, dev=c("png","cairo_ps")}
 ```
 
 ### RT Time Series
@@ -56,14 +56,14 @@ Compute the group average RT 'signal'.
 
 Let's see you work it ggplot. Shake it. Shake it good.
 
-```{r msit-rt-average-plot, fig.width=12, fig.height=4, dev="cairo_ps"}
+```{r msit-rt-average-plot, fig.width=12, fig.height=4, dev=c("png","cairo_ps")}
 ```
 
 ### BOLD & RT Time Series
 
 Let's see you work it ggplot. Shake it. Shake it good.
 
-```{r msit-dmn-rt-average-plot, fig.width=12, fig.height=4, dev="cairo_ps"}
+```{r msit-dmn-rt-average-plot, fig.width=12, fig.height=4, dev=c("png","cairo_ps")}
 ```
 
 ### Correlations Between DN and RT Signal
