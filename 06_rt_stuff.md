@@ -71,6 +71,35 @@ rts$run <- factor(rts$run)
 
 
 ```r
+# CCB
+ccb_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccb_template.mat"), 
+    skip = 5)
+ccb_waver <- as.matrix(ccb_waver)[, c(1, 3)]
+ccb_waver <- ccb_waver[, 2] - ccb_waver[, 1]
+tmpdf <- data.frame(time = seq(0, by = 1.75, length.out = length(ccb_waver)), 
+    predicted_signal = ccb_waver)
+ggplot(tmpdf, aes(time, predicted_signal)) + geom_line() + xlab("Time (secs)") + 
+    ylab("Predicted Signal") + ggtitle("For CCB Subjects")
+```
+
+![plot of chunk task-waver](figure/task-waver1.png) 
+
+```r
+# CCD
+ccd_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccd_template.mat"), 
+    skip = 5)
+ccd_waver <- as.matrix(ccd_waver)[, c(1, 3)]
+ccd_waver <- ccd_waver[, 2] - ccd_waver[, 1]
+tmpdf <- data.frame(time = seq(0, by = 2, length.out = length(ccd_waver)), predicted_signal = ccd_waver)
+ggplot(tmpdf, aes(time, predicted_signal)) + geom_line() + xlab("Time (secs)") + 
+    ylab("Predicted Signal") + ggtitle("For CCD Subjects")
+```
+
+![plot of chunk task-waver](figure/task-waver2.png) 
+
+
+
+```r
 # this loads the 'tss' object with attr(tss, 'split_labels') to get how
 # stuff should be organized
 load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
@@ -221,9 +250,42 @@ ggplot(connectivity_rest, aes(x = z)) + geom_histogram(aes(fill = ..count..)) +
 
 
 ```r
+sub_splitter <- subset(splitter, condition == "MSIT")
+correlation_msit_dmn <- ddply(sub_splitter, .(subject, study, scan, run), function(sdf) {
+    ts <- tss[[sdf$index]][, dmn]
+    if (sdf$study == "CCB") 
+        r <- cor(ts, ccb_waver) else r <- cor(ts, ccd_waver)
+    z <- atanh(r)
+    c(r = r, z = z)
+})
+# collapse across scan and run
+correlation_msit_dmn <- ddply(correlation_msit_dmn, .(subject), numcolwise(mean))
+# plot CCB
+ggplot(correlation_msit_dmn[1:28, ], aes(x = z, fill = ..count..)) + geom_histogram(binwidth = 0.05) + 
+    geom_hline(aes(yintercept = 0)) + geom_vline(aes(xintercept = 0), linetype = "dashed") + 
+    xlab("DMN Correlation with Task Design, Incoherent > Coherent (Fischer Z)") + 
+    ylab("Number of Subjects") + ggtitle("CCB Dataset")
+```
+
+![plot of chunk msit-dmn-correlation](figure/msit-dmn-correlation1.png) 
+
+```r
+# plot CCD
+ggplot(correlation_msit_dmn[29:37, ], aes(x = z, fill = ..count..)) + geom_histogram(binwidth = 0.1) + 
+    geom_hline(aes(yintercept = 0)) + geom_vline(aes(xintercept = 0), linetype = "dashed") + 
+    xlab("DMN Correlation with Task Design, Incoherent > Coherent (Fischer Z)") + 
+    ylab("Number of Subjects") + ggtitle("CCD Dataset")
+```
+
+![plot of chunk msit-dmn-correlation](figure/msit-dmn-correlation2.png) 
+
+
+
+```r
 df_phenos <- merge(rts_df, phenos, by = "subject")
 df_kurtosis <- merge(rts_df, kurtosis_rest, by = c("study", "subject"))
 df_connectivity <- merge(rts_df, connectivity_rest, by = c("study", "subject"))
+df_msit_dn <- merge(rts_df, correlation_msit_dmn, by = c("subject"))
 df_kurtosis_phenos <- merge(subset(df_kurtosis, study == "CCD", select = -1), 
     phenos, by = "subject")
 df_connectivity_phenos <- merge(subset(df_connectivity, study == "CCD", select = -1), 
@@ -309,7 +371,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)
-## (Intercept) -0.192663   0.309005   -0.62     0.54
+## (Intercept) -0.192664   0.309005   -0.62     0.54
 ## mean.rt      0.000178   0.000328    0.54     0.59
 ## 
 ## Robust residual standard error: 0.177 
@@ -318,7 +380,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
 ## Robustness weights: 
 ##  7 weights are ~= 1. The remaining 29 ones are summarized as
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0408  0.8360  0.9370  0.8380  0.9710  0.9970 
+##  0.0409  0.8360  0.9370  0.8380  0.9710  0.9970 
 ## Algorithmic parameters: 
 ## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
 ##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
@@ -917,6 +979,208 @@ p
 ```
 
 ![plot of chunk connectivity-cvrt](figure/connectivity-cvrt.png) 
+
+
+### MSIT-DN Correlation
+
+
+```r
+tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
+    cat("\nCondition:", as.character(sdf$condition[1]), "\n")
+    wrap_lmrob(z ~ mean.rt, sdf)
+})
+```
+
+```
+## 
+## Condition: Coherent 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.32505 -0.06931  0.00101  0.04858  0.18874 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.419887   0.242756   -1.73    0.093 .
+## mean.rt      0.000372   0.000405    0.92    0.365  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.0942 
+## Convergence in 17 IRWLS iterations
+## 
+## Robustness weights: 
+##  4 weights are ~= 1. The remaining 32 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.209   0.839   0.944   0.871   0.985   0.997 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Incoherent 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.28413 -0.07422  0.00936  0.06849  0.21732 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -0.308900   0.155082   -1.99    0.054 .
+## mean.rt      0.000116   0.000160    0.72    0.474  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.111 
+## Convergence in 11 IRWLS iterations
+## 
+## Robustness weights: 
+##  2 weights are ~= 1. The remaining 34 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.491   0.907   0.957   0.909   0.985   0.999 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+```r
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ mean.rt, "z", "mean.rt")
+# Plot
+p0 <- ggplot(tmpdf, aes(x = mean.rt, y = z)) + geom_hline(aes(yintercept = 0)) + 
+    xlab("Mean MSIT RT (msecs)") + ylab("Correlation between MSIT Task Design\n& DN Signal (Fischer Z)") + 
+    facet_grid(. ~ condition, scales = "free_x")
+if (any(tmpdf$outlier == "yes")) {
+    p <- p0 + geom_point(data = tmpdf[tmpdf$outlier == "yes", ], size = 8, color = brewer.pal(3, 
+        "Pastel1")[1]) + geom_point(aes(color = condition), shape = 1, size = 8) + 
+        geom_text(aes(label = id), size = 5) + geom_line(data = grid, color = "blue") + 
+        scale_color_discrete(name = "Measure")
+} else {
+    p <- p0 + geom_point(aes(color = condition), shape = 1, size = 8) + geom_text(aes(label = id), 
+        size = 5) + geom_line(data = grid, color = "blue") + scale_color_discrete(name = "Measure")
+}
+p
+```
+
+![plot of chunk msit_dn-meanrt](figure/msit_dn-meanrt.png) 
+
+
+
+```r
+tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
+    cat("\nCondition:", as.character(sdf$condition[1]), "\n")
+    wrap_lmrob(z ~ cv.rt, sdf)
+})
+```
+
+```
+## 
+## Condition: Coherent 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.2523 -0.0581  0.0165  0.0756  0.1864 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)   -0.357      0.152   -2.35    0.024 *
+## cv.rt          0.664      0.639    1.04    0.307  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Robust residual standard error: 0.104 
+## Convergence in 17 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.532   0.870   0.945   0.899   0.982   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0) 
+## 
+## Condition: Incoherent 
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.2537 -0.0735  0.0240  0.0727  0.2660 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)   -0.280      0.186   -1.51     0.14
+## cv.rt          0.446      0.959    0.47     0.64
+## 
+## Robust residual standard error: 0.108 
+## Convergence in 14 IRWLS iterations
+## 
+## Robustness weights: 
+##  3 weights are ~= 1. The remaining 33 ones are summarized as
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.527   0.876   0.950   0.901   0.984   0.998 
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
+```
+
+```r
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ cv.rt, "z", "cv.rt")
+# Plot
+p0 <- ggplot(tmpdf, aes(x = cv.rt, y = z)) + geom_hline(aes(yintercept = 0)) + 
+    xlab("MSIT RT Coefficient of Variation") + ylab("Correlation between MSIT Task Design\n& DN Signal (Fischer Z)") + 
+    facet_grid(. ~ condition, scales = "free_x")
+if (any(tmpdf$outlier == "yes")) {
+    p <- p0 + geom_point(data = tmpdf[tmpdf$outlier == "yes", ], size = 8, color = brewer.pal(3, 
+        "Pastel1")[1]) + geom_point(aes(color = condition), shape = 1, size = 8) + 
+        geom_text(aes(label = id), size = 5) + geom_line(data = grid, color = "blue") + 
+        scale_color_discrete(name = "Measure")
+} else {
+    p <- p0 + geom_point(aes(color = condition), shape = 1, size = 8) + geom_text(aes(label = id), 
+        size = 5) + geom_line(data = grid, color = "blue") + scale_color_discrete(name = "Measure")
+}
+p
+```
+
+![plot of chunk msit_dn-cvrt](figure/msit_dn-cvrt.png) 
 
 
 ## Associations between RT and phenotypic measures
@@ -3048,6 +3312,10 @@ cvrt.single(df_phenos_incoherent, names, title)
 ```
 ## 
 ## Running regression for RRS_Brooding
+```
+
+```
+## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
 ```
 
 ```
