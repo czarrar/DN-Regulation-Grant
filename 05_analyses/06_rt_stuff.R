@@ -39,6 +39,34 @@ rts <- rts[rts$rt>200,] # remove trials with RT < 200ms
 rts$scan <- factor(rts$scan)
 rts$run <- factor(rts$run)
 
+## @knitr task-waver
+# CCB
+ccb_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccb_template.mat"), skip=5)
+ccb_waver <- as.matrix(ccb_waver)[,c(1,3)]
+ccb_waver <- ccb_waver[,2] - ccb_waver[,1]
+tmpdf <- data.frame(
+    time = seq(0, by=1.75, length.out=length(ccb_waver)), 
+    predicted_signal = ccb_waver
+)
+ggplot(tmpdf, aes(time, predicted_signal)) + 
+    geom_line() + 
+    xlab("Time (secs)") + 
+    ylab("Predicted Signal") +
+    ggtitle("For CCB Subjects")
+# CCD
+ccd_waver <- read.table(file.path(scriptdir, "04_msit_task/level1_ccd_template.mat"), skip=5)
+ccd_waver <- as.matrix(ccd_waver)[,c(1,3)]
+ccd_waver <- ccd_waver[,2] - ccd_waver[,1]
+tmpdf <- data.frame(
+    time = seq(0, by=2, length.out=length(ccd_waver)), 
+    predicted_signal = ccd_waver
+)
+ggplot(tmpdf, aes(time, predicted_signal)) + 
+    geom_line() + 
+    xlab("Time (secs)") + 
+    ylab("Predicted Signal") +
+    ggtitle("For CCD Subjects")
+
 ## @knitr timeseries
 # this loads the 'tss' object with attr(tss, 'split_labels') to get how stuff should be organized
 load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
@@ -97,10 +125,41 @@ ggplot(connectivity_rest, aes(x=z)) +
     facet_grid(network ~ study) + 
     xlab("Connectivity with DMN (Fischer Z)")
 
+## @knitr msit-dmn-correlation
+sub_splitter <- subset(splitter, condition=="MSIT")
+correlation_msit_dmn <- ddply(sub_splitter, .(subject, study, scan, run), function(sdf) {
+    ts <- tss[[sdf$index]][,dmn]
+    if (sdf$study == "CCB")
+        r <- cor(ts, ccb_waver)
+    else
+        r <- cor(ts, ccd_waver)
+    z <- atanh(r)
+    c(r=r, z=z)    
+})
+# collapse across scan and run
+correlation_msit_dmn <- ddply(correlation_msit_dmn, .(subject), numcolwise(mean))
+# plot CCB
+ggplot(correlation_msit_dmn[1:28,], aes(x=z, fill=..count..)) + 
+    geom_histogram(binwidth=0.05) + 
+    geom_hline(aes(yintercept=0)) + 
+    geom_vline(aes(xintercept=0), linetype="dashed") + 
+    xlab("DMN Correlation with Task Design, Incoherent > Coherent (Fischer Z)") + 
+    ylab("Number of Subjects") + 
+    ggtitle("CCB Dataset")
+# plot CCD
+ggplot(correlation_msit_dmn[29:37,], aes(x=z, fill=..count..)) + 
+    geom_histogram(binwidth=0.1) + 
+    geom_hline(aes(yintercept=0)) + 
+    geom_vline(aes(xintercept=0), linetype="dashed") + 
+    xlab("DMN Correlation with Task Design, Incoherent > Coherent (Fischer Z)") +
+    ylab("Number of Subjects") + 
+    ggtitle("CCD Dataset")
+
 ## @knitr combine
 df_phenos <- merge(rts_df, phenos, by='subject')
 df_kurtosis <- merge(rts_df, kurtosis_rest, by=c('study', 'subject'))
 df_connectivity <- merge(rts_df, connectivity_rest, by=c('study', 'subject'))
+df_msit_dn <- merge(rts_df, correlation_msit_dmn, by=c('subject'))
 df_kurtosis_phenos <- merge(subset(df_kurtosis, study=="CCD", select=-1), phenos, by='subject')
 df_connectivity_phenos <- merge(subset(df_connectivity, study=="CCD", select=-1), phenos, by='subject')
 
@@ -234,6 +293,66 @@ p0 <- ggplot(tmpdf, aes(x=cv.rt, y=z)) +
         xlab("MSIT RT Coefficient of Variation") + 
         ylab("Connectivity with DN at Rest (Fischer Z)") + 
         facet_grid(network ~ condition, scales="free_x")
+if (any(tmpdf$outlier=="yes")) {
+    p <- p0 + 
+            geom_point(data=tmpdf[tmpdf$outlier=="yes",], size=8, 
+                        color=brewer.pal(3,"Pastel1")[1]) +
+            geom_point(aes(color=condition), shape=1, size=8) +
+            geom_text(aes(label=id), size=5) +
+            geom_line(data=grid, color="blue") + 
+            scale_color_discrete(name="Measure")
+} else {
+    p <- p0 + 
+            geom_point(aes(color=condition), shape=1, size=8) +
+            geom_text(aes(label=id), size=5) +
+            geom_line(data=grid, color="blue") + 
+            scale_color_discrete(name="Measure")
+}
+p
+
+## @knitr msit_dn-meanrt
+tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
+    cat("\nCondition:", as.character(sdf$condition[1]), "\n")
+    wrap_lmrob(z ~ mean.rt, sdf)
+})
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ mean.rt, "z", "mean.rt")
+# Plot
+p0 <- ggplot(tmpdf, aes(x=mean.rt, y=z)) +
+        geom_hline(aes(yintercept=0)) +  
+        xlab("Mean MSIT RT (msecs)") + 
+        ylab("Correlation between MSIT Task Design\n& DN Signal (Fischer Z)") + 
+        facet_grid(. ~ condition, scales="free_x")
+if (any(tmpdf$outlier=="yes")) {
+    p <- p0 + 
+            geom_point(data=tmpdf[tmpdf$outlier=="yes",], size=8, 
+                        color=brewer.pal(3,"Pastel1")[1]) +
+            geom_point(aes(color=condition), shape=1, size=8) +
+            geom_text(aes(label=id), size=5) +
+            geom_line(data=grid, color="blue") + 
+            scale_color_discrete(name="Measure")
+} else {
+    p <- p0 + 
+            geom_point(aes(color=condition), shape=1, size=8) +
+            geom_text(aes(label=id), size=5) +
+            geom_line(data=grid, color="blue") + 
+            scale_color_discrete(name="Measure")
+}
+p
+
+## @knitr msit_dn-cvrt
+tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
+    cat("\nCondition:", as.character(sdf$condition[1]), "\n")
+    wrap_lmrob(z ~ cv.rt, sdf)
+})
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ cv.rt, "z", "cv.rt")
+# Plot
+p0 <- ggplot(tmpdf, aes(x=cv.rt, y=z)) +
+        geom_hline(aes(yintercept=0)) +  
+        xlab("MSIT RT Coefficient of Variation") + 
+        ylab("Correlation between MSIT Task Design\n& DN Signal (Fischer Z)") + 
+        facet_grid(. ~ condition, scales="free_x")
 if (any(tmpdf$outlier=="yes")) {
     p <- p0 + 
             geom_point(data=tmpdf[tmpdf$outlier=="yes",], size=8, 

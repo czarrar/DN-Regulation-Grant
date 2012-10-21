@@ -32,6 +32,9 @@ Not much to see here :(.
 ```{r rts}
 ```
 
+```{r task-waver}
+```
+
 ```{r timeseries}
 ```
 
@@ -46,6 +49,9 @@ Not much to see here :(.
 The CCD seems to be slightly positively shifted in its distribution. I hope this is not due to differences in any preprocessing steps.
 
 ```{r connectivity, message=FALSE}
+```
+
+```{r msit-dmn-correlation, message=FALSE}
 ```
 
 ```{r combine}
@@ -70,6 +76,14 @@ The CCD seems to be slightly positively shifted in its distribution. I hope this
 ```
 
 ```{r connectivity-cvrt, fig.width=8, fig.height=6}
+```
+
+### MSIT-DN Correlation
+
+```{r msit_dn-meanrt, fig.width=8, fig.height=4}
+```
+
+```{r msit_dn-cvrt, fig.width=8, fig.height=4}
 ```
 
 ## Associations between RT and phenotypic measures
