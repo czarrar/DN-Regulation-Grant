@@ -35,7 +35,6 @@ subinfo$run <- factor(subinfo$run)
 
 ## @knitr rts
 load(file.path(datadir, "ccb+ccd_rts.rda")) # rts
-rts <- rts[rts$rt>200,] # remove trials with RT < 200ms
 rts$scan <- factor(rts$scan)
 rts$run <- factor(rts$run)
 
@@ -72,7 +71,20 @@ ggplot(tmpdf, aes(time, predicted_signal)) +
 load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
 splitter <- attr(tss, 'split_labels')
 splitter$index <- 1:nrow(splitter)
-
+# only look at time-series for MSIT with associated RT info
+# note: there's proly a better 
+splitter <- ddply(splitter, .(study,subject,condition,scan,run), function(x) {
+    if (x$condition=="REST")
+        return(x)
+    has_any <- any(ddply(rts, .(study,subject,condition,scan,run), function(y) {
+        y <- y[1,]
+        as.character(x$subject) == as.character(y$subject) & x$scan == y$scan & x$run == y$run
+    })$V1)
+    if (has_any)
+        return(x)
+    else
+        return(data.frame())
+})    
 
 ## @knitr -----------break-------------
 
@@ -84,7 +96,14 @@ splitter$index <- 1:nrow(splitter)
 rts_df <- ddply(rts, .(study, subject, condition), function(sdf) {
     c(mean.rt=mean(sdf$rt), cv.rt=sd(sdf$rt)/mean(sdf$rt))
 })
-rts_df
+d <- ddply(rts_df, .(study, subject), function(sdf) {
+    coh <- sdf$condition=="Coherent"
+    incoh <- sdf$condition=="Incoherent"
+    data.frame(condition="Difference", mean.rt=sdf$mean.rt[incoh]-sdf$mean.rt[coh], cv.rt=sdf$cv.rt[incoh]-sdf$cv.rt[coh])
+})
+rts_df$condition <- factor(rts_df$condition, levels=c("Coherent", "Incoherent", "Difference"))
+d$condition      <- factor(d$condition, levels=c("Coherent", "Incoherent", "Difference"))
+rts_df <- ddply(rbind(rts_df, d), .(study, subject, condition), function(x) x)
 # Plot Mean RTs
 ggplot(rts_df, aes(x=mean.rt)) + 
     geom_histogram(aes(fill=..count..)) + 
@@ -192,7 +211,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
     cat("\nCondition:", as.character(sdf$condition[1]), "\n")
     wrap_lmrob(kurtosis ~ mean.rt, sdf)
 })
-tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 3)
 grid <- ddply(df_kurtosis, .(condition), get_grid, kurtosis ~ mean.rt, "kurtosis", "mean.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x=mean.rt, y=kurtosis)) +
@@ -222,7 +241,7 @@ tmpdf <- ddply(df_kurtosis, .(condition), function(sdf) {
     cat("\nCondition:", as.character(sdf$condition[1]), "\n")
     wrap_lmrob(kurtosis ~ cv.rt, sdf)
 })
-tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_kurtosis$subject)), 3)
 grid <- ddply(df_kurtosis, .(condition), get_grid, kurtosis ~ cv.rt, "kurtosis", "cv.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x=cv.rt, y=kurtosis)) +
@@ -315,7 +334,7 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
     cat("\nCondition:", as.character(sdf$condition[1]), "\n")
     wrap_lmrob(z ~ mean.rt, sdf)
 })
-tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 3)
 grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ mean.rt, "z", "mean.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x=mean.rt, y=z)) +
@@ -345,7 +364,7 @@ tmpdf <- ddply(df_msit_dn, .(condition), function(sdf) {
     cat("\nCondition:", as.character(sdf$condition[1]), "\n")
     wrap_lmrob(z ~ cv.rt, sdf)
 })
-tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 2)
+tmpdf$id <- rep(1:length(unique(df_msit_dn$subject)), 3)
 grid <- ddply(df_msit_dn, .(condition), get_grid, z ~ cv.rt, "z", "cv.rt")
 # Plot
 p0 <- ggplot(tmpdf, aes(x=cv.rt, y=z)) +
@@ -396,7 +415,7 @@ meanrt.single <- function(df, names, title) {
     bb.df$outlier <- factor(bb.df$outlier)
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier=="no",], .(measure), function(sdf) {
         model <- lmrob(mean.rt ~ behavior, sdf, maxit.scale=500)
         sgrid <- data.frame(
             behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20)
@@ -446,7 +465,7 @@ cvrt.single <- function(df, names, title) {
     bb.df$outlier <- factor(bb.df$outlier)
     
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier=="no",], .(measure), function(sdf) {
         model <- lmrob(cv.rt ~ behavior, sdf, maxit.scale=500)
         sgrid <- data.frame(
             behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20)
@@ -529,7 +548,7 @@ title <- "Incoherent Trials"
 df_phenos_incoherent <- subset(df_phenos, condition=="Incoherent")
 
 ## @knitr incoherent-meanrt-totals
-names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+names <- c("SIPI", "ERQ", "BDI", "AIM") # RRS won't work
 meanrt.single(df_phenos_incoherent, names, title)
 
 ## @knitr incoherent-meanrt-sipi
@@ -567,3 +586,48 @@ cvrt.single(df_phenos_incoherent, names, title)
 ## @knitr incoherent-cvrt-panas
 names <- c("PANAS_Positive", "PANAS_Negative")
 cvrt.single(df_phenos_incoherent, names, title)
+
+
+## @knitr select-difference
+title <- "Difference Trials"
+df_phenos_difference <- subset(df_phenos, condition=="Difference")
+
+## @knitr difference-meanrt-totals
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+meanrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-meanrt-sipi
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+meanrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-meanrt-erq
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+meanrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-meanrt-rrs
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+meanrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-meanrt-panas
+names <- c("PANAS_Positive", "PANAS_Negative")
+meanrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-cvrt-totals
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+cvrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-cvrt-sipi
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+cvrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-cvrt-erq
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+cvrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-cvrt-rrs
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+cvrt.single(df_phenos_difference, names, title)
+
+## @knitr difference-cvrt-panas
+names <- c("PANAS_Positive", "PANAS_Negative")
+cvrt.single(df_phenos_difference, names, title)

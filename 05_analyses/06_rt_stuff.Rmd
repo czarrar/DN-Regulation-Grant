@@ -93,6 +93,45 @@ The CCD seems to be slightly positively shifted in its distribution. I hope this
 
 All of these regression analyses were done individually (i.e., each phenotypic measure was associated with RT in an individual/seperate model).
 
+### Incoherent-Coherent (Difference) Trials
+
+```{r select-difference}
+```
+
+#### Mean RT
+
+```{r difference-meanrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r difference-meanrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r difference-meanrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r difference-meanrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r difference-meanrt-panas, fig.width=8, fig.height=6}
+```
+
+#### RT CV
+
+```{r difference-cvrt-totals, fig.width=12, fig.height=6}
+```
+
+```{r difference-cvrt-sipi, fig.width=8, fig.height=4}
+```
+
+```{r difference-cvrt-erq, fig.width=8, fig.height=6}
+```
+
+```{r difference-cvrt-rrs, fig.width=8, fig.height=4}
+```
+
+```{r difference-cvrt-panas, fig.width=8, fig.height=6}
+```
+
 ### Coherent Trials
 
 ```{r select-coherent}

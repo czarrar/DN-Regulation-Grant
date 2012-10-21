@@ -4,6 +4,7 @@ library(e1071)
 library(ggplot2)
 library(RColorBrewer)
 library(robustbase)
+library(reshape)
 basedir <- dirname(dirname(getwd()))    # assume running in current direcotry
 scriptdir <- file.path(basedir, "scripts/04_msit_task")
 datadir <- file.path(basedir, "scripts/data")
@@ -67,12 +68,29 @@ ggplot(tmpdf, aes(time, predicted_signal)) +
     ylab("Predicted Signal") +
     ggtitle("For CCD Subjects")
 
+## @knitr rts
+load(file.path(datadir, "ccb+ccd_rts_all.rda")) # rts
+rts$scan <- factor(rts$scan)
+rts$run <- factor(rts$run)
+
 ## @knitr msit-ts
 # this loads the 'tss' object with attr(tss, 'split_labels') to get how stuff should be organized
 load(file.path(basedir, "scripts/data/ccb+ccd_time_series.rda"))
 splitter <- attr(tss, 'split_labels')
 splitter$index <- 1:nrow(splitter)
-
+# only look at time-series for MSIT with associated RT info
+# note: there's proly a better 
+splitter <- ddply(splitter, .(study,subject,condition,scan,run), function(x) {
+    if (x$condition=="REST")
+        return(x)
+    has_any <- any(ddply(subset(rts, trial==1), .(study,subject,condition,scan,run), function(y) {
+        as.character(x$subject) == as.character(y$subject) & x$scan == y$scan & x$run == y$run
+    })$V1)
+    if (has_any)
+        return(x)
+    else
+        return(data.frame())
+})
 
 ## @knitr -----------break-------------
 
@@ -107,30 +125,92 @@ ccd_event_tpts <- data.frame(
 ccd_event_tpts$xmin <- ccd_event_tpts$xmin * 2
 ccd_event_tpts$xmax <- ccd_event_tpts$xmax * 2
 
+## @knitr msit-rt-average
+# CCB
+sub_rts <- subset(rts, study=="CCB")
+sub_rts$subject <- factor(sub_rts$subject)
+ccb_rts_ave <- daply(sub_rts, .(trial), function(sdf) {
+    mean(sdf$rt, na.rm=T)
+})
+raw_ccb_rt_ave <- data.frame(
+    timepoint = (1:ncol(ccb_msit_tcs)) * 1.75, 
+    rt = c(rep(0,18), ccb_rts_ave, rep(0,14))
+)
+zscore_ccb_rt_ave <- data.frame(
+    timepoint = (1:ncol(ccb_msit_tcs)) * 1,75, 
+    rt = c(rep(0,18), scale(ccb_rts_ave), rep(0,14))
+)
+# CCD
+sub_rts <- subset(rts, study=="CCD")
+sub_rts$subject <- factor(sub_rts$subject)
+ccd_rts_ave <- daply(sub_rts, .(trial), function(sdf) {
+    mean(sdf$rt, na.rm=T)
+})
+raw_ccd_rt_ave <- data.frame(
+    timepoint = (1:ncol(ccd_msit_tcs)) * 2, 
+    rt = c(rep(0,16), ccd_rts_ave, rep(0,11))
+)
+zscore_ccd_rt_ave <- data.frame(
+    timepoint = (1:ncol(ccd_msit_tcs)) * 2, 
+    rt = c(rep(0,16), scale(ccd_rts_ave), rep(0,11))
+)
+
+## @knitr msit-rt-average-plot
+# CCB
+p <- ggplot(raw_ccb_rt_ave) +
+        geom_rect(data=ccb_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
+        scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
+                            values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_line(aes(x=timepoint, y=rt), color="darkblue", size=0.75) + 
+        scale_x_continuous(name="Time (secs)", limits=c(0,224*1.75), breaks=c(0,100,200,300,224*1.75), expand=c(0,0)) + 
+        scale_y_continuous(name="RT (msecs)", limits=c(0,1400), breaks=seq(0,1400,200), expand=c(0,0))
+print(p)      
+# CCD
+p <- ggplot(raw_ccd_rt_ave) +
+        geom_rect(data=ccd_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
+        scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
+                            values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_line(aes(x=timepoint, y=rt), color="darkblue", size=0.75) + 
+        scale_x_continuous(name="Time (secs)", limits=c(0,153*2), expand=c(0,0)) + 
+        scale_y_continuous(name="RT (msecs)", limits=c(0,1400), breaks=seq(0,1400,200), expand=c(0,0))
+print(p)
+
 ## @knitr msit-dmn-average
 # CCB
 sub_splitter <- subset(splitter, condition=="MSIT" & study=="CCB")
 sub_splitter$subject <- factor(sub_splitter$subject)
 ccb_msit_tcs <- daply(sub_splitter, .(subject), function(sdf) {
-    tcs <- sapply(tss[sdf$index], function(x) x[,dmn])
-    tc <- rowMeans(tcs)
+    tcs <- sapply(sdf$index, function(ii) {
+        x <- tss[[ii]][,dmn]
+        bad_trials <- is.na(subset(rts, subject==as.character(sdf$subject[ii]) & scan==sdf$scan[ii] & run==sdf$run[ii])$rt)
+        bad_trials <- c(rep(F,18), bad_trials, rep(F,14))
+        x[bad_trials] <- NA
+        x
+    })
+    tc <- rowMeans(tcs, na.rm=T)
     tc
 })
 ccb_msit_tc_ave <- data.frame(
     timepoint = (1:ncol(ccb_msit_tcs)) * 1.75, 
-    bold = colMeans(ccb_msit_tcs)
+    bold = colMeans(ccb_msit_tcs, na.rm=T)
 )
 # CCD
 sub_splitter <- subset(splitter, condition=="MSIT" & study=="CCD")
 sub_splitter$subject <- factor(sub_splitter$subject)
 ccd_msit_tcs <- daply(sub_splitter, .(subject), function(sdf) {
-    tcs <- sapply(tss[sdf$index], function(x) x[,dmn])
-    tc <- rowMeans(tcs)
+    tcs <- sapply(sdf$index, function(ii) {
+        x <- tss[[ii]][,dmn]
+        bad_trials <- is.na(subset(rts, subject==as.character(sdf$subject[ii]) & scan==sdf$scan[ii] & run==sdf$run[ii])$rt)
+        bad_trials <- c(rep(F,16), bad_trials, rep(F,11))
+        x[bad_trials] <- NA
+        x
+    })
+    tc <- rowMeans(tcs, na.rm=T)
     tc
 })
 ccd_msit_tc_ave <- data.frame(
     timepoint = (1:ncol(ccd_msit_tcs)) * 2, 
-    bold = colMeans(ccd_msit_tcs)
+    bold = colMeans(ccd_msit_tcs, na.rm=T)
 )
 
 ## @knitr msit-dmn-average-plot
@@ -139,6 +219,7 @@ p <- ggplot(ccb_msit_tc_ave) +
         geom_rect(data=ccb_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
         scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
                             values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_hline(aes(xintercept=0), linetype="dotted", size=0.5) + 
         geom_line(aes(x=timepoint, y=bold), color="darkblue", size=0.75) + 
         scale_x_continuous(name="Time (secs)", limits=c(0,224*1.75), breaks=c(0,100,200,300,224*1.75), expand=c(0,0)) + 
         scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), breaks=round(seq(-0.3,0.3,0.1),1), expand=c(0,0))
@@ -148,10 +229,43 @@ p <- ggplot(ccd_msit_tc_ave) +
         geom_rect(data=ccd_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
         scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
                             values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_hline(aes(xintercept=0), linetype="dotted", size=0.5) + 
         geom_line(aes(x=timepoint, y=bold), color="darkblue", size=0.75) + 
         scale_x_continuous(name="Time (secs)", limits=c(0,153*2), expand=c(0,0)) + 
         scale_y_continuous(name="BOLD Signal", limits=c(-0.3,0.3), breaks=round(seq(-0.3,0.3,0.1),1), expand=c(0,0))
 print(p)      
+
+## @knitr msit-dmn-rt-average-plot
+# CCB
+tmpdf <- data.frame(
+    timepoint = rep(ccb_msit_tc_ave$timepoint, 2), 
+    measure = rep(c("BOLD Signal", "RT"), each=nrow(ccb_msit_tc_ave)), 
+    value = c(scale(ccb_msit_tc_ave$bold), zscore_ccb_rt_ave$rt)
+)
+p <- ggplot(tmpdf) +
+        geom_rect(data=ccb_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
+        scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
+                            values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_hline(aes(xintercept=0), linetype="dotted", size=0.5) + 
+        geom_line(aes(x=timepoint, y=value, color=measure), size=0.75) + 
+        scale_x_continuous(name="Time (secs)", limits=c(0,224*1.75), breaks=c(0,100,200,300,224*1.75), expand=c(0,0)) + 
+        scale_y_continuous(name="Z-Score", limits=c(-4,4), expand=c(0,0))
+print(p)      
+# CCD
+tmpdf <- data.frame(
+    timepoint = rep(ccd_msit_tc_ave$timepoint, 2), 
+    measure = rep(c("BOLD Signal", "RT"), each=nrow(ccd_msit_tc_ave)), 
+    value = c(scale(ccd_msit_tc_ave$bold), zscore_ccd_rt_ave$rt)
+)
+p <- ggplot(tmpdf) +
+        geom_rect(data=ccd_event_tpts, aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf, fill=block)) +
+        scale_fill_manual(name="", breaks=c("Fixation", "Coherent", "Incoherent"), 
+                            values=brewer.pal(4, "Pastel2")[-4]) + 
+        geom_hline(aes(xintercept=0), linetype="dotted", size=0.5) + 
+        geom_line(aes(x=timepoint, y=value, color=measure), size=0.75) + 
+        scale_x_continuous(name="Time (secs)", limits=c(0,153*2), expand=c(0,0)) +              
+        scale_y_continuous(name="Z-Score", limits=c(-4,4), expand=c(0,0))
+print(p)
 
 
 ## @knitr -----------break-------------
@@ -191,6 +305,42 @@ ggplot(correlation_msit_dmn[29:37,], aes(x=z, fill=..count..)) +
     ylab("Number of Subjects") + 
     ggtitle("CCD Dataset")
 
+
+## @knite msit-dmn-rt-correlation
+sub_splitter <- subset(splitter, condition=="MSIT")
+sub_splitter$subject <- factor(sub_splitter$subject)
+bold_rt_cor <- ddply(sub_splitter, .(study, subject), function(sdf) {
+    zs <- sapply(1:length(sdf$index), function(i) {
+        x <- tss[[sdf$index[i]]][,dmn]
+        rt_vals <- subset(rts, subject==as.character(sdf$subject[i]) & scan==sdf$scan[i] & run==sdf$run[i])$rt
+        if (sdf$study[i]=="CCB") {
+            rt_vals <- c(rep(NA,18), rt_vals, rep(NA,14))
+            ctrials <- ccb_coherent == 1
+            itrials <- ccb_incoherent == 1
+        } else {
+            rt_vals <- c(rep(NA,16), rt_vals, rep(NA,11))
+            ctrials <- ccd_coherent == 1
+            itrials <- ccd_incoherent == 1
+        }
+        all_z <- atanh(cor(x, rt_vals, use="complete.obs"))
+        coherent_z <- atanh(cor(x[ctrials], rt_vals[ctrials], use="complete.obs"))
+        incoherent_z <- atanh(cor(x[itrials], rt_vals[itrials], use="complete.obs"))
+        c(all=all_z, coherent=coherent_z, incoherent=incoherent_z, difference=(incoherent_z-coherent_z))
+    })
+    rowMeans(zs)
+})
+bold_rt_cor <- melt(bold_rt_cor, variable_name="condition")
+# Means
+ddply(bold_rt_cor, .(condition), numcolwise(mean))
+# Variability
+ddply(bold_rt_cor, .(condition), numcolwise(sd))
+# Histogram
+ggplot(bold_rt_cor, aes(x=value, fill=study)) + 
+    geom_histogram(binwidth=0.05) + 
+    geom_vline(aes(xintercept=0), linetype='dashed') + 
+    facet_grid(condition ~ .) + 
+    xlab("Correlation between DN and RT (Fischer Z)")
+    
 
 ## @knitr -----------break-------------
 

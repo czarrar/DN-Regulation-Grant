@@ -8,7 +8,8 @@ library(bcp)
 library(RColorBrewer)
 library(robustbase)
 library(MASS)
-basedir <- "/home2/data/Projects/CCD"
+basedir <- dirname(dirname(getwd()))
+datadir <- file.path(basedir, "scripts/data")
 oldtheme <- theme_set(theme_bw())
 
 ## @knitr network-setup
@@ -21,18 +22,20 @@ tps <- 8:10
 ## @knitr -----------break-------------
 
 ## @knitr phenotypes
-fname <- file.path(basedir, "scripts/data/ccd_totals.csv")
+fname <- file.path(datadir, "ccd_totals.csv")
 phenos <- read.csv(fname, row.names=1)
 phenos <- phenos[14:27,][-c(8,13),]  # CCD014 ... CCD027 (NO CCD021 and CCD026)
 
 ## @knitr connectivity
 # Read in time-series
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D"))) # (NO CCD021 and CCD026)
-tcs <- laply(fnames, function(f) as.matrix(read.table(f)))
-tcs <- tcs[12:23,,] # CCD014 ... CCD027
+load(file.path(datadir, "ccb+ccd_time_series_all.rda"))
+splitter <- attr(tss, 'split_labels')
+splitter$index <- 1:nrow(splitter)
+sub_splitter <- subset(splitter, subject %in% toupper(phenos$study_id))
+tcs <- laply(tss[sub_splitter$index], function(x) x)
 # Calculate correlations
 rest_conn_all <- aaply(tcs, 1, cor)
-rest_conn <- rest_conn_all[,tps,1]   # only look at DMN connectivity with TP networks
+rest_conn <- rest_conn_all[,tps,dmn]   # only look at DMN connectivity with TP networks
 colnames(rest_conn) <- network_names[tps]
 names(dimnames(rest_conn)) <- c("subjects", "networks")
 # Mean
@@ -40,7 +43,7 @@ colMeans(rest_conn)
 
 ## @knitr kurtosis
 # only for DMN
-rest_kurtosis <- aaply(tcs[,,4], 1, kurtosis)
+rest_kurtosis <- aaply(tcs[,,dmn], 1, kurtosis)
 # distribution
 ggplot(data.frame(x=rest_kurtosis), aes(x=x)) +
     geom_histogram(binwidth=0.2) +
@@ -49,7 +52,7 @@ ggplot(data.frame(x=rest_kurtosis), aes(x=x)) +
 
 ## @knitr autocorrelation
 # only for DMN
-rest_lags <- aaply(tcs[,,4], 1, function(vec) {
+rest_lags <- aaply(tcs[,,dmn], 1, function(vec) {
     acors <- acf(vec, plot=F)
     lags <- c(acors$lag)
     acors <- c(acors$acf)
@@ -66,7 +69,7 @@ ggplot(data.frame(x=rest_lags), aes(x=x)) +
     labs(x="Number of Lags for Zero Autocorrelation")
 
 ## @knitr changepoints
-rest_changes <- aaply(tcs[,,4], 1, function(vec) {
+rest_changes <- aaply(tcs[,,dmn], 1, function(vec) {
     bcp.0 <- bcp(vec)
     sum(bcp.0$posterior.prob>0.5, na.rm=T)
 })
@@ -76,10 +79,10 @@ ggplot(data.frame(x=rest_changes), aes(x=x)) +
     geom_hline(aes(yintercept=0)) + 
     labs(x="Kurtosis")
 # sample subject
-plot(bcp(tcs[1,,4]))
+plot(bcp(tcs[1,,dmn]))
 
 ## @knitr prediction
-fname <- file.path(basedir, "behavior/CCD_full_dframe.csv")
+fname <- file.path(datadir, "CCD_full_dframe.csv")
 preds <- read.csv(fname)
 preds <- preds[-c(23,24),c(2,6,10)] # no CCD026; only look at DMN
 colnames(preds)[3] <- "R"
@@ -234,7 +237,7 @@ brainbehavior.multiple <- function(names, with_age_sex=TRUE) {
     
     # Get best fit line
     model <- lmrob(prediction ~ behavior + measure, bb.df, maxit.scale=500)
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier=="no",], .(measure), function(sdf) {
         data.frame(
             behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20), 
             measure=rep(sdf$measure[1], 20)
@@ -287,7 +290,7 @@ brainbehavior.single <- function(names, with_age_sex=TRUE) {
     
         
     # Get best fit line
-    grid <- ddply(bb.df, .(measure), function(sdf) {
+    grid <- ddply(bb.df[bb.df$outlier=="no",], .(measure), function(sdf) {
         model <- lmrob(prediction ~ behavior, sdf, maxit.scale=500)
         sgrid <- data.frame(
             behavior=seq(min(sdf$behavior), max(sdf$behavior), length=20)
@@ -345,7 +348,6 @@ brainbehavior.multiple(names)
 ## @knitr multiple-panas-prediction
 names <- c("PANAS_Positive", "PANAS_Negative")
 brainbehavior.multiple(names)
-
 
 ## @knitr single-totals-prediction
 names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
@@ -414,3 +416,48 @@ names <- c("PANAS_Positive", "PANAS_Negative")
 brainbehavior.single(names, with_age_sex=FALSE)
 
 
+## @knitr multiple-totals-prediction-just-say-no-no1
+df <- df[-1,]
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-totals-prediction-no-bdi-just-say-no-no1
+names <- c("SIPI", "RRS", "ERQ", "AIM", "PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-sipi-prediction-just-say-no-no1
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-erq-prediction-just-say-no-no1
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-rrs-prediction-just-say-no-no1
+names <- c("RRS_Brooding", "RRS_Reflection", "RRS_Depression")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+## @knitr multiple-panas-prediction-just-say-no-no1
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.multiple(names, with_age_sex=FALSE)
+
+
+## @knitr single-totals-prediction-just-say-no-no1
+names <- c("SIPI", "RRS", "ERQ", "BDI", "AIM")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-sipi-prediction-just-say-no-no1
+names <- c("SIPI_PAC", "SIPI_GFFD", "SIPI_PCD")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-erq-prediction-just-say-no-no1
+names <- c("ERQ_Reappraisal", "ERQ_Suppression")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-rrs-prediction-just-say-no-no1
+names <- c("RRS_Brooding", "RRS_Depression", "RRS_Reflection")
+brainbehavior.single(names, with_age_sex=FALSE)
+
+## @knitr single-panas-prediction-just-say-no-no1
+names <- c("PANAS_Positive", "PANAS_Negative")
+brainbehavior.single(names, with_age_sex=FALSE)

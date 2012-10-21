@@ -1,4 +1,4 @@
-# Associations between MSIT-DMN and Rest-DMN-Kurtosis
+# Associations between MSIT-DMN and DN-TP connectivity
 
 Note that actual code is loaded from a different file.
 

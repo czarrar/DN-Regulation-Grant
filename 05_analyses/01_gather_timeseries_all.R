@@ -7,7 +7,7 @@ scriptdir <- file.path(basedir, "scripts/05_analyses")
 datadir <- file.path(basedir, "scripts/data")
 
 # Read in subject info
-subinfo <- read.csv(file.path(datadir, "ccb+ccd_filtered.csv"))
+subinfo <- read.csv(file.path(datadir, "ccb+ccd_filtered_all.csv"))
 subinfo$scan <- factor(subinfo$scan)
 subinfo$run <- factor(subinfo$run)
 
@@ -43,4 +43,4 @@ tss <- dlply(fnames_df, .(subject, study, condition, scan, run), function(sdf) {
 })
 ## can use attr(tss, "split_labels") to get how the splitting was done
 
-save(tss, file=file.path(datadir, "ccb+ccd_time_series.rda"))
+save(tss, file=file.path(datadir, "ccb+ccd_time_series_all.rda"))
