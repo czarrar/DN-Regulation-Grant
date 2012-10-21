@@ -209,7 +209,7 @@ p <- ggplot(ccb_msit_tc_ave) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.postscript) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.eps) 
 
 ```r
 # CCD
@@ -224,7 +224,7 @@ p <- ggplot(ccd_msit_tc_ave) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.postscript) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.eps) 
 
 
 ### RT Time Series
@@ -271,7 +271,7 @@ p <- ggplot(raw_ccb_rt_ave) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot1.postscript) 
+![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot1.eps) 
 
 ```r
 # CCD
@@ -285,7 +285,7 @@ p <- ggplot(raw_ccd_rt_ave) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot2.postscript) 
+![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot2.eps) 
 
 
 ### BOLD & RT Time Series
@@ -309,7 +309,7 @@ p <- ggplot(tmpdf) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin, xmax = xm
 print(p)
 ```
 
-![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot1.postscript) 
+![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot1.eps) 
 
 ```r
 # CCD
@@ -326,7 +326,7 @@ p <- ggplot(tmpdf) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin, xmax = xm
 print(p)
 ```
 
-![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot2.postscript) 
+![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot2.eps) 
 
 
 ### Correlations Between DN and RT Signal
@@ -802,10 +802,6 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
-```
-
-```
 ## 
 ## Call:
 ## lmrob(formula = f, data = df, maxit.scale = 500)
@@ -972,7 +968,7 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## Error: dgels: weighted design matrix not of full rank (column 3). Exiting.
+## Error: dgels: weighted design matrix not of full rank (column 6). Exiting.
 ```
 
 
