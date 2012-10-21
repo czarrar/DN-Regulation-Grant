@@ -209,7 +209,7 @@ p <- ggplot(ccb_msit_tc_ave) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.eps) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot1.png) 
 
 ```r
 # CCD
@@ -224,7 +224,7 @@ p <- ggplot(ccd_msit_tc_ave) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.eps) 
+![plot of chunk msit-dmn-average-plot](figure/msit-dmn-average-plot2.png) 
 
 
 ### RT Time Series
@@ -271,7 +271,7 @@ p <- ggplot(raw_ccb_rt_ave) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot1.eps) 
+![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot1.png) 
 
 ```r
 # CCD
@@ -285,7 +285,7 @@ p <- ggplot(raw_ccd_rt_ave) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin,
 print(p)
 ```
 
-![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot2.eps) 
+![plot of chunk msit-rt-average-plot](figure/msit-rt-average-plot2.png) 
 
 
 ### BOLD & RT Time Series
@@ -309,7 +309,7 @@ p <- ggplot(tmpdf) + geom_rect(data = ccb_event_tpts, aes(xmin = xmin, xmax = xm
 print(p)
 ```
 
-![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot1.eps) 
+![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot1.png) 
 
 ```r
 # CCD
@@ -326,7 +326,7 @@ p <- ggplot(tmpdf) + geom_rect(data = ccd_event_tpts, aes(xmin = xmin, xmax = xm
 print(p)
 ```
 
-![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot2.eps) 
+![plot of chunk msit-dmn-rt-average-plot](figure/msit-dmn-rt-average-plot2.png) 
 
 
 ### Correlations Between DN and RT Signal
@@ -802,42 +802,8 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## 
-## Call:
-## lmrob(formula = f, data = df, maxit.scale = 500)
-## 
-## Weighted Residuals:
-## [1]  0.0504  0.0811  0.0485  0.0475 -0.0114 -0.0581 -0.0223 -0.1404
-## 
-## Coefficients:
-##                Estimate Std. Error t value Pr(>|t|)  
-## (Intercept)    -0.75925    0.26006   -2.92    0.100  
-## age             0.01756    0.00452    3.88    0.060 .
-## sexM           -0.09705    0.06259   -1.55    0.261  
-## RRS_Brooding   -0.04594    0.01420   -3.24    0.084 .
-## RRS_Reflection -0.07987    0.02314   -3.45    0.075 .
-## RRS_Depression  0.06046    0.01734    3.49    0.073 .
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-## 
-## Robust residual standard error: 0.199 
-## Convergence in 6 IRWLS iterations
-## 
-## Robustness weights: 
-## [1] 0.994 0.985 0.995 0.995 1.000 0.992 0.999 0.955
-## Algorithmic parameters: 
-## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
-##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
-##      nResample         max.it       best.r.s       k.fast.s          k.max 
-##            500             50              2              1            200 
-##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
-##            500              0           1000              0           2000 
-##           psi   subsampling        method           cov 
-##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
-## seed : int(0)
+## Error: dgels: weighted design matrix not of full rank (column 6). Exiting.
 ```
-
-![plot of chunk multiple-rrs-correlation](figure/multiple-rrs-correlation.png) 
 
 
 #### Single Regressions
@@ -968,8 +934,40 @@ brainbehavior.multiple(names, df)
 ```
 
 ```
-## Error: dgels: weighted design matrix not of full rank (column 6). Exiting.
+## 
+## Call:
+## lmrob(formula = f, data = df, maxit.scale = 500)
+## 
+## Weighted Residuals:
+## [1]  0.0366 -0.0399  0.1325  0.0270 -0.1365  0.0503 -0.0103 -0.0603
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)
+## (Intercept)  0.83028    1.85627    0.45     0.70
+## age          0.00207    0.00627    0.33     0.77
+## sexM        -0.32346    0.22387   -1.44     0.29
+## SIPI_PAC     0.01393    0.00994    1.40     0.30
+## SIPI_GFFD    0.00348    0.01633    0.21     0.85
+## SIPI_PCD    -0.03107    0.02595   -1.20     0.35
+## 
+## Robust residual standard error: 0.225 
+## Convergence in 7 IRWLS iterations
+## 
+## Robustness weights: 
+## [1] 0.998 0.997 0.969 0.999 0.967 0.995 1.000 0.993
+## Algorithmic parameters: 
+## tuning.chi         bb tuning.psi refine.tol    rel.tol  solve.tol 
+##   1.55e+00   5.00e-01   4.69e+00   1.00e-07   1.00e-07   1.00e-07 
+##      nResample         max.it       best.r.s       k.fast.s          k.max 
+##            500             50              2              1            200 
+##    maxit.scale      trace.lev            mts     compute.rd fast.s.large.n 
+##            500              0           1000              0           2000 
+##           psi   subsampling        method           cov 
+##    "bisquare" "nonsingular"          "MM" ".vcov.avar1" 
+## seed : int(0)
 ```
+
+![plot of chunk multiple-sipi-correlation](figure/multiple-sipi-correlation.png) 
 
 
 #### Single Regressions
@@ -983,10 +981,6 @@ brainbehavior.single(names, df)
 ```
 ## 
 ## Running regression for SIPI_PAC
-```
-
-```
-## Warning: find_scale() did not converge in 'maxit.scale' (= 500) iterations
 ```
 
 ```
