@@ -2,7 +2,9 @@
 library(plyr)
 library(e1071)
 library(ggplot2)
-basedir <- "/home2/data/Projects/CCD"
+library(robustbase)
+basedir <- dirname(dirname(getwd())) # assume running in current directory
+scriptdir <- dirname(getwd())
 
 ## @knitr network-setup
 network_names <- c("medial visual", "occipital pole visual", "lateral visual", "default network", "cerebellum", "sensorimotor", "auditory", "executive control", "right frontoparietal", "left frontoparietal")
@@ -10,27 +12,37 @@ network_names <- gsub(" ", ".", network_names)
 dmn <- which(network_names == "default.network")
 
 ## @knitr phenotypes
-fname <- file.path(basedir, "behavior/ccd_totals_touse.csv")
+fname <- file.path(scriptdir, "data/ccd_totals_touse.csv")
 phenos <- read.csv(fname, row.names=1)
 
 ## @knitr timeseries
-
+load(file.path(scriptdir, "data/ccb+ccd_time_series.rda"))
+splitter <- attr(tss, 'split_labels')
+splitter$index <- 1:nrow(splitter)
 # Rest
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/rest/run_01/rsn10.1D")))
-rest_tcs <- laply(fnames, function(f) as.matrix(read.table(f)), .progress="text")
-
+sub_splitter <- subset(splitter, condition=="REST" & study=="CCD")
+sub_splitter$subject <- factor(sub_splitter$subject)
+rest_tcs <- daply(sub_splitter, .(subject), function(sdf) {
+    tcs <- sapply(tss[sdf$index], function(x) x[,dmn])
+    tc <- rowMeans(tcs)
+    tc
+})
 # MSIT Run 1
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/msit/run_01/rsn10.1D")))
-msit_run1_tcs <- laply(fnames, function(f) as.matrix(read.table(f)), .progress="text")
-
+sub_splitter <- subset(splitter, condition=="MSIT" & study=="CCD" & run==1)
+sub_splitter$subject <- factor(sub_splitter$subject)
+msit_run1_tcs <- daply(sub_splitter, .(subject), function(sdf) {
+    tcs <- sapply(tss[sdf$index], function(x) x[,dmn])
+    tc <- rowMeans(tcs)
+    tc
+})
 # MSIT Run 2
-fnames <- sort(Sys.glob(file.path(basedir, "analysis/subjects/*/msit/run_02/rsn10.1D")))
-msit_run2_tcs <- laply(fnames, function(f) as.matrix(read.table(f)), .progress="text")
-
-## @knitr only-dmn
-rest_tcs <- rest_tcs[,,dmn]
-msit_run1_tcs <- msit_run1_tcs[,,dmn]
-msit_run2_tcs <- msit_run2_tcs[,,dmn]
+sub_splitter <- subset(splitter, condition=="MSIT" & study=="CCD" & run==2)
+sub_splitter$subject <- factor(sub_splitter$subject)
+msit_run2_tcs <- daply(sub_splitter, .(subject), function(sdf) {
+    tcs <- sapply(tss[sdf$index], function(x) x[,dmn])
+    tc <- rowMeans(tcs)
+    tc
+})
 
 ## @knitr kurtosis
 rest_kurtosis <- aaply(rest_tcs, 1, kurtosis, .progress="text")
@@ -44,7 +56,6 @@ df.rest <- data.frame(
     phenos, 
     kurtosis=rest_kurtosis
 )
-
 # MSIT
 n <- length(msit_run1_kurtosis)
 df.msit <- data.frame(
@@ -53,7 +64,6 @@ df.msit <- data.frame(
     rbind(phenos[1:n,-1], phenos[1:n,-1]), 
     kurtosis=c(msit_run1_kurtosis, msit_run2_kurtosis)
 )
-
 # MSIT (average 2 runs) & Rest
 df.msit_and_rest <- data.frame(
     study_id = factor(rep(phenos$study_id[1:n], 2)), 
@@ -66,7 +76,6 @@ mat.msit_and_rest <- data.frame(
     msit = (msit_run1_kurtosis+msit_run2_kurtosis)/2, 
     rest = rest_kurtosis[1:n]
 )
-
 # Difference between MSIT (average 2 runs) & Rest
 df.msit_vs_rest <- data.frame(
     study_id = phenos$study_id[1:n], 
@@ -96,21 +105,21 @@ ggplot(df.msit_vs_rest, aes(x=kurtosis)) +
 
 ## @knitr anova-totals
 # During Rest
-summary(aov(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.rest))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.rest, maxit.scale=500))
 # During MSIT
-summary(aov(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.msit))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.msit, maxit.scale=500))
 # Effects of Scan (MSIT/Rest)
-summary(aov(kurtosis ~ Age + Sex + scan + Error(study_id), df.msit_and_rest))
+summary(lmrob(kurtosis ~ Age + Sex + scan + Error(study_id), df.msit_and_rest, maxit.scale=500))
 # MSIT vs REST
-summary(aov(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.msit_vs_rest))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.msit_vs_rest, maxit.scale=500))
 
 ## @knitr anova-subscales
 # During Rest
-summary(aov(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.rest))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.rest, maxit.scale=500))
 # During MSIT
-summary(aov(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.msit))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.msit, maxit.scale=500))
 # MSIT vs REST
-summary(aov(kurtosis ~ Age + Sex + SIPI + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.msit_vs_rest))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.msit_vs_rest, maxit.scale=500))
 
 ## @knitr bimodal
 library(mixtools)
@@ -131,20 +140,20 @@ cat(msg)
 
 ## @knitr bi-anova-totals
 # Negative Group
-summary(aov(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.neg))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI + RRS + ERQ + BDI + AIM, df.neg, maxit.scale=500))
 # Positive Group
-summary(aov(kurtosis ~ Age + Sex + SIPI, df.pos))
-summary(aov(kurtosis ~ Age + Sex + RRS, df.pos))
-summary(aov(kurtosis ~ Age + Sex + ERQ, df.pos))
-summary(aov(kurtosis ~ Age + Sex + BDI, df.pos))
-summary(aov(kurtosis ~ Age + Sex + AIM, df.pos))
+summary(lmrob(kurtosis ~ Age + Sex + SIPI, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + RRS, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + ERQ, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + BDI, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + AIM, df.pos, maxit.scale=500))
 
 ## @knitr bi-anova-subscales
 # Negative Group
-summary(aov(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.neg))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Brooding + RRS_Reflection + RRS_Depression + PANAS_Positive + PANAS_Negative, df.neg, maxit.scale=500))
 # Positive Group
-summary(aov(kurtosis ~ Age + Sex + RRS_Brooding, df.pos))
-summary(aov(kurtosis ~ Age + Sex + RRS_Reflection, df.pos))
-summary(aov(kurtosis ~ Age + Sex + RRS_Depression, df.pos))
-summary(aov(kurtosis ~ Age + Sex + PANAS_Positive, df.pos))
-summary(aov(kurtosis ~ Age + Sex + PANAS_Negative, df.pos))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Brooding, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Reflection, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + RRS_Depression, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + PANAS_Positive, df.pos, maxit.scale=500))
+summary(lmrob(kurtosis ~ Age + Sex + PANAS_Negative, df.pos, maxit.scale=500))
